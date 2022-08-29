@@ -69,7 +69,7 @@ contract Coordinator {
         startBlock = block.number;
     }
 
-    // ! Allowlist (DKG Nodes) Currently Not in Use
+    // ! Allowlist (DKG Nodes) done via initialize() in randcast
     /// The administrator must allowlist an addrss for participation in the DKG
     function allowlist(address user) external onlyWhenNotStarted {
         require(msg.sender == owner, "only owner may allowlist users");
@@ -81,6 +81,7 @@ contract Coordinator {
         userState[user] = UserState.CanRegister;
     }
 
+    //! Register done via initialize() in randcast
     /// This function ties a DKG participant's on-chain address with their BLS Public Key
     function register(bytes calldata blsPublicKey) external onlyWhenNotStarted {
         require(
