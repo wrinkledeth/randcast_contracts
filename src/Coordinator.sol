@@ -5,7 +5,7 @@ pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract Coordinator {
+contract Coordinator is Ownable {
     enum UserState {
         CannotRegister,
         CanRegister,
@@ -40,7 +40,7 @@ contract Coordinator {
     uint256 public startBlock = 0;
 
     /// The owner of the DKG is the address which can call the `start` function
-    address public owner;
+    // address public owner;
 
     /// A registered participant is one whose pubkey's length > 0
     modifier onlyRegistered() {
@@ -60,19 +60,19 @@ contract Coordinator {
     constructor(uint256 threshold, uint256 duration) {
         PHASE_DURATION = duration;
         THRESHOLD = threshold;
-        owner = msg.sender;
+        // owner = msg.sender;
     }
 
     /// Kickoff function which starts the counter (INITIALIZE)
-    function start() external onlyWhenNotStarted {
-        require(msg.sender == owner, "only owner may start the DKG");
+    function start() external onlyWhenNotStarted onlyOwner {
+        // require(msg.sender == owner, "only owner may start the DKG");
         startBlock = block.number;
     }
 
     // ! Allowlist (DKG Nodes) done via initialize() in randcast
     /// The administrator must allowlist an addrss for participation in the DKG
-    function allowlist(address user) external onlyWhenNotStarted {
-        require(msg.sender == owner, "only owner may allowlist users");
+    function allowlist(address user) external onlyWhenNotStarted onlyOwner {
+        // require(msg.sender == owner, "only owner may allowlist users");
 
         require(
             userState[user] == UserState.CannotRegister,
@@ -95,6 +95,19 @@ contract Coordinator {
         // the user is now registered
         userState[msg.sender] = UserState.Registered;
     }
+
+    //! New initialize code here (replaces start() and register())
+    struct Member {
+        address node_address;
+        // uint256 node_index; // index of node within group
+        bytes blsPublicKey;
+    }
+
+    function initialize(Member[] calldata)
+        external
+        onlyWhenNotStarted
+        onlyOwner
+    {}
 
     /// Participant publishes their data and depending on the phase the data gets inserted
     /// in the shares, responses or justifications mapping. Reverts if the participant
