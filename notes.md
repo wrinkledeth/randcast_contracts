@@ -54,4 +54,4 @@ Use OpenZeppelin Ownable modifier
 
 ## Next Steps
 
-Use ethers.rs to trigger contract directly using coordinator code.
+Use ethers.rs to trigger contract directly using controller code.
