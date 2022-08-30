@@ -51,3 +51,7 @@ Register logic must be included here.
 ## Change #2: custom -> Ownable
 
 Use OpenZeppelin Ownable modifier
+
+## Next Steps
+
+Use ethers.rs to trigger contract directly using coordinator code.
