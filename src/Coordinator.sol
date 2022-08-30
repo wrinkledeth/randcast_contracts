@@ -6,14 +6,14 @@ pragma solidity ^0.8.15;
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract Coordinator is Ownable {
-    enum UserState {
-        CannotRegister,
-        CanRegister,
-        Registered
-    }
+    // enum UserState {
+    //     CannotRegister,
+    //     CanRegister,
+    //     Registered
+    // }
 
     /// Mapping of Ethereum Address => UserState for the actions a user can do
-    mapping(address => UserState) public userState;
+    // mapping(address => UserState) public userState;
 
     /// Mapping of Ethereum Address => BLS public keys
     mapping(address => bytes) public keys;
