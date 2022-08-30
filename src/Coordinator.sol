@@ -202,7 +202,7 @@ contract Coordinator is Ownable {
     }
 
     /// Returns the current phase of the DKG.
-    function inPhase() public view returns (uint256) {
+    function inPhase() public view returns (int8) {
         if (startBlock == 0) {
             return 0;
         }
@@ -221,6 +221,7 @@ contract Coordinator is Ownable {
             return 3;
         }
 
-        revert("DKG Ended");
+        // revert("DKG Ended");
+        return -1;
     }
 }

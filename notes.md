@@ -71,5 +71,10 @@ Use OpenZeppelin Ownable modifier rather than their custom checks.
 
 ## Next Steps
 
-
 Use ethers.rs to trigger contract directly using controller code.
+Look into anvil / see if you can get this to work!
+
+Need to implement controller with solidity.
+
+Need to do signature verification with solidity!
+BLS Signature verificartion onchain.

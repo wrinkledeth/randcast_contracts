@@ -22,7 +22,7 @@ contract CoordinatorTest is Test {
     address public node2 = address(0x2);
     address public node3 = address(0x3);
 
-    bytes pubkey1 = "0x123";
+    bytes pubkey1 = "0x123"; //! use more realistic sample key.
     bytes pubkey2 = "0x456";
     bytes pubkey3 = "0x789";
 
@@ -97,9 +97,9 @@ contract CoordinatorTest is Test {
         coordinator.initialize(nodes, keys);
         uint256 startBlock = coordinator.startBlock();
 
-        // Phase 1: Publish
+        // Phase 1: Shares
         vm.startPrank(node1);
-        coordinator.publish(data); // succesful publish
+        coordinator.publish(data); // succesful share
         vm.expectRevert("you have already published your shares");
         coordinator.publish(data);
 
@@ -146,8 +146,9 @@ contract CoordinatorTest is Test {
 
         // DKG Ended
         vm.roll(startBlock + 1 + 3 * PHASE_DURATION);
-        vm.expectRevert("DKG Ended");
-        assertEq(coordinator.inPhase(), 0); //! is this a problem?
+        // vm.expectRevert("DKG Ended");
+        // coordinator.inPhase();
+        assertEq(coordinator.inPhase(), -1);
         // emit log("Blocks since start: ");
         // emit log_uint(block.number - startBlock);
     }
