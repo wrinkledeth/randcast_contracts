@@ -1,6 +1,6 @@
 // Using the ABIEncoderV2 poses little risk here because we only use it for fetching the byte arrays
 // of shares/responses/justifications
-pragma experimental ABIEncoderV2;
+// pragma experimental ABIEncoderV2;  // don't think we need this
 pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
