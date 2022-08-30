@@ -50,8 +50,26 @@ Register logic must be included here.
 
 ## Change #2: custom -> Ownable
 
-Use OpenZeppelin Ownable modifier
+Use OpenZeppelin Ownable modifier rather than their custom checks.
+
+## Change #3: onlyRegistered 
+
+- Celo uses a UserState enum to track node retistration information.
+- Randcast just checks to see if the node is in the list of participants.
+- Plan to implement a participants map in addition to an array for contant lookups when checking onlyRegistered during puslish()
+
+## Change #4 
+
+- Change all unit tests from hardhat -> foundry
+- Add any missing tests / test for new functionality
+
+---
+
+## Questions
+
+- Do we really need to pass in a triplet for initialize()? Groups.epoch does not seem to be used by the contract.
 
 ## Next Steps
+
 
 Use ethers.rs to trigger contract directly using controller code.

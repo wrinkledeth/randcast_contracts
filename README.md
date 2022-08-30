@@ -2,10 +2,11 @@
 
 DKG Coordinator Contract for EVM chains
 
-Usage:
-
+## Usage
 ```bash
 forge install # Install submodule dependencies
 forge build # Compile contracts
 forge test # Run Tests
 ```
+
+[Notes.md](https://github.com/wrinkledeth/randcast_coordinator_contract/blob/main/notes.md)

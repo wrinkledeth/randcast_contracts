@@ -101,7 +101,7 @@ contract Coordinator is Ownable {
     //     userState[msg.sender] = UserState.Registered;
     // }
 
-    //! New initialize code here (replaces start() and register())
+    //! New initialize code here (replaces start() and register() and allowlist())
     // struct Member {
     //     address node_address;
     //     // uint256 node_index; // index of node within group
@@ -111,9 +111,10 @@ contract Coordinator is Ownable {
     function initialize(address[] calldata nodes, bytes[] calldata publicKeys)
         external
         onlyWhenNotStarted
-        // group.epoch # do we really need this?
+        // group.epoch # do we really need this in the contract?
         onlyOwner
     {
+        // the below might need some work.
         for (uint256 i = 0; i < nodes.length; i++) {
             participant_map[nodes[i]] = true;
             participants.push(nodes[i]);

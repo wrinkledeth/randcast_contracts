@@ -172,7 +172,7 @@ contract CoordinatorTest is Test {
         // Phase 2: Responses
         vm.roll(startBlock + 1 + PHASE_DURATION);
         assertEq(coordinator.inPhase(), 2);
-        bytes memory my_responses = "0xCAFEBABE";
+        bytes memory my_responses = "0xBABECAFE";
         coordinator.publish(my_responses); // only node2 publishes
         bytes[] memory responses = coordinator.getResponses();
         assertEq(responses[0], "");
