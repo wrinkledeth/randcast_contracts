@@ -2,7 +2,7 @@
 
 DKG Coordinator Contract for EVM chains
 
-Usage
+Usage:
 
 ```bash
 forge install # Install submodule dependencies
