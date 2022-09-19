@@ -5,6 +5,8 @@ pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
+import {Coordinator} from "src/Coordinator.sol";
+
 contract Controller is Ownable {
     //! Constants
     uint256 public immutable NODE_STAKING_AMOUNT = 50000;
@@ -35,7 +37,9 @@ contract Controller is Ownable {
     struct Group {
         uint256 index; // group_index
         uint256 epoch; // 0
-        // address[] Member;
+        uint256 size; // 0
+        uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
+        Member[] members;
         // Member[] members; // BTreeMap::new(), TODO
     }
 
@@ -46,6 +50,8 @@ contract Controller is Ownable {
     // ! Member Struct
     struct Member {
         uint256 index;
+        address node_id_address;
+        bytes partial_public_key;
     }
 
     function nodeRegister(bytes calldata id_public_key) public {
@@ -65,23 +71,16 @@ contract Controller is Ownable {
         );
 
         nodeRegistered[msg.sender] = true;
-
-        // Start tracking rewards (not needed)
-        // rewards[msg.sender] = 0; // This is already true
-
-        // call nodeJoin
-        nodeJoin(msg.sender);
+        rewards[msg.sender] = 0; // This is already true
+        nodeJoin(msg.sender); // call node_join
     }
 
     // ! Node Join Stuff
     function nodeJoin(address idAddress) public {
-        // * get group index from findOrCreateTargetGroup
+        // * get groupIndex from findOrCreateTargetGroup -> addGroup
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
-
-        // * Add to group
-        addToGroup(idAddress, groupIndex, true);
-
-        // * Reblance Group: Implement later!
+        addToGroup(idAddress, groupIndex, true); // * add to group
+        // ! Reblance Group: Implement later!
     }
 
     function findOrCreateTargetGroup()
@@ -95,16 +94,27 @@ contract Controller is Ownable {
     }
 
     function addGroup() public returns (uint256) {
-        groupCount++; //increment group count
-        uint256 epoch = 0;
-
-        // insert new group struct
-        groups[groupCount] = Group(
-            groupCount,
-            epoch
-            // TODO: Empty Members struct here.
-        );
+        Group storage g = groups[groupCount++];
+        g.index = groupCount;
+        g.size = 0;
+        g.threshold = DEFAULT_MINIMUM_THRESHOLD;
+        // g.members.push(Member(0));
         return groupCount;
+        // groupCount++; //increment group count
+        // uint256 epoch = 0;
+
+        // // Create Emtpy Member
+        // uint256 zero = 0;
+
+        // bytes memory partial_public_key = "";
+
+        // groups[groupCount] = Group(
+        //     groupCount,
+        //     epoch,
+        //     // Todo Member needs to be improved
+        //     Member(zero, zero_addy, partial_public_key)
+        // );
+        // return groupCount;
     }
 
     function addToGroup(
@@ -113,39 +123,54 @@ contract Controller is Ownable {
         bool emitEventInstantly
     ) public returns (bool) {
         // Get group from group intex
-        // Create Member = Member Struct
-        // group.size ++
+        Group storage g = groups[groupIndex];
+
+        // Add Member Struct to group at group index
+        Member memory m;
+        m.index = g.size;
+        m.node_id_address = idAddress;
+
         // insert (node id address - > member) into group.members
-        // minimum = minimum threshold
-        // if groupsize >=3: emit_group_event
+        g.members.push(m);
+        g.size++;
+
+        // TODO: minimum = minimum threshold(group.size)
+
+        if ((g.size >= 3) && emitEventInstantly) {
+            emitGroupEvent(groupIndex);
+        }
     }
 
+    function emitGroupEvent(uint256 groupIndex) public {
+        // TODO: Require groups.contains_key(&group_index)
+
+        // TODO: Self.epoch += 1  (what is this??)
+
+        // Increment group epoch
+        Group storage g = groups[groupIndex];
+        g.epoch++; // is this not it?
+
+        Coordinator coordinator;
+
+        coordinator = new Coordinator(
+            // g.epoch, // ! epoch isnt in coordinator constructor atm.
+            g.threshold,
+            DEFAULT_DKG_PHASE_DURATION
+        );
+    }
+
+    //! Getter function for testing, will be omitted.
     function getNode(address i) public view returns (address, bytes memory) {
         return (nodes[i].ip_address, nodes[i].id_public_key);
     }
 
-    // function addGroup() public {
-    //     fn add_group(&mut self) -> usize {  //! create new group and assign group index.
-    //         let group_index = self.groups.len() + 1;
-    //     uint groupLen = 0;
-    //     groups[grouplen] = Group(
-    //         uint256 index; // group_index
-    //         uint256 epoch; // 0
-    //         uint256 capacity; // GROUP_MAX_CAPACITY,
-    //         uint256 size; // 0,
-    //         uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD,
-    //         bool is_strictly_majority_consensus_reached; // false,
-    //         bytes[] public_key; // vec![], TODO
-    //         uint256 fail_randomness_task_count; // 0,
-    //         bytes[] members;  // BTreeMap::new(), TODO
-    //         bytes[] committers; // vec![],
-    //         bytes[] commit_cache; // BTreeMap::new(), TODO
-    //     );
-    //         self.groups.insert(group_index, group);
-    //         group_index
-    //     }
-    // }
-    function addToGroup() public {}
+    function getGroupSize(uint256 groupIndex) public view returns (uint256) {
+        // ! Return group size
+        Group storage g = groups[groupIndex];
+        return g.size;
+    }
 
-    function emitGroupEvent(uint256 groupIndex) public {}
+    function getGroup(uint256 groupIndex) public view returns (Group memory) {
+        return groups[groupIndex];
+    }
 }

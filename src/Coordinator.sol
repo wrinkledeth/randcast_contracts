@@ -62,8 +62,8 @@ contract Coordinator is Ownable {
     }
 
     constructor(uint256 threshold, uint256 duration) {
-        PHASE_DURATION = duration;
         THRESHOLD = threshold;
+        PHASE_DURATION = duration;
         // owner = msg.sender;
     }
 

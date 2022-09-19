@@ -35,7 +35,7 @@ contract ControllerTest is Test {
         controller = new Controller();
     }
 
-    function testFlow() public {
+    function testEmitGroupEvent() public {
         vm.prank(node1);
         controller.nodeRegister(pubkey1);
         vm.prank(node2);
@@ -43,8 +43,17 @@ contract ControllerTest is Test {
         vm.prank(node3);
         controller.nodeRegister(pubkey3);
 
-        (address a, bytes memory key) = controller.getNode(node1);
-        emit log_address(a);
-        emit log_bytes(key);
+        // (address a, bytes memory key) = controller.getNode(node1);
+        // emit log_address(a);
+        // emit log_bytes(key);
+
+        // uint256 size = controller.getGroupSize(0);
+        // emit log_uint(size);
+
+        Controller.Group memory g = controller.getGroup(0);
+        emit log_uint(g.index);
+        emit log_uint(g.epoch);
+        emit log_uint(g.size);
+        emit log_uint(g.threshold);
     }
 }
