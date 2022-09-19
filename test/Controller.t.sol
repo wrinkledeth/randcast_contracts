@@ -43,9 +43,9 @@ contract ControllerTest is Test {
         vm.prank(node3);
         controller.nodeRegister(pubkey3);
 
-        // (address a, bytes memory key) = controller.getNode(node1);
-        // emit log_address(a);
-        // emit log_bytes(key);
+        (address a, bytes memory key) = controller.getNode(node1);
+        emit log_address(a);
+        emit log_bytes(key);
 
         // uint256 size = controller.getGroupSize(0);
         // emit log_uint(size);

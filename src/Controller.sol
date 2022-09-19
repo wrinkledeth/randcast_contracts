@@ -164,12 +164,6 @@ contract Controller is Ownable {
         return (nodes[i].ip_address, nodes[i].id_public_key);
     }
 
-    function getGroupSize(uint256 groupIndex) public view returns (uint256) {
-        // ! Return group size
-        Group storage g = groups[groupIndex];
-        return g.size;
-    }
-
     function getGroup(uint256 groupIndex) public view returns (Group memory) {
         return groups[groupIndex];
     }
