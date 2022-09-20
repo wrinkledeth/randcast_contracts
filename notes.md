@@ -26,3 +26,8 @@ node_register:
     - [x] Write unit tests
     - [ ] Integrate with coordinator tests
     - [ ] Optimize function and state keywords to save gas.
+
+
+## Questions
+
+Line 106. Whats going on here

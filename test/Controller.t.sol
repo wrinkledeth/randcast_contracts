@@ -93,7 +93,7 @@ contract ControllerTest is Test {
         printMemberInfo(groupIndex, 1);
         assertEq(m.index, 1);
         assertEq(m.nodeIdAddress, node2);
-        // assertEq(m.partialPublicKey, ?);
+        // assertEq(m.partialPublicKey, TODO);
     }
 
     // ! Helper function for debugging below
