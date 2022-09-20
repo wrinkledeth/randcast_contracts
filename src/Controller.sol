@@ -50,8 +50,8 @@ contract Controller is Ownable {
 
     struct Member {
         uint256 index;
-        address node_id_address;
-        bytes partial_public_key;
+        address nodeIdAddress;
+        bytes partialPublicKey;
     }
 
     function nodeRegister(bytes calldata dkgPublicKey) public {
@@ -121,7 +121,7 @@ contract Controller is Ownable {
         // Add Member Struct to group at group index
         Member memory m;
         m.index = g.size;
-        m.node_id_address = idAddress;
+        m.nodeIdAddress = idAddress;
 
         // insert (node id address - > member) into group.members
         g.members.push(m);
@@ -158,5 +158,13 @@ contract Controller is Ownable {
 
     function getGroup(uint256 groupIndex) public view returns (Group memory) {
         return groups[groupIndex];
+    }
+
+    function getMember(uint256 groupIndex, uint256 memberIndex)
+        public
+        view
+        returns (Member memory)
+    {
+        return groups[groupIndex].members[memberIndex];
     }
 }

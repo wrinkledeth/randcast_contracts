@@ -23,9 +23,11 @@ contract ControllerTest is Test {
     address public node4 = address(0x4);
 
     // Node Public Keys
-    bytes pubkey1 = "0x5"; //! use more realistic sample key.
-    bytes pubkey2 = "0x6";
-    bytes pubkey3 = "0x7";
+    bytes pubkey1 = hex"BEEFED";
+    bytes pubkey2 = hex"DECADE";
+    bytes pubkey3 = hex"FACADE";
+
+    uint256 registerCount; // track number of registered nodes for tests
 
     function setUp() public {
         // deal nodes
@@ -37,14 +39,22 @@ contract ControllerTest is Test {
         vm.deal(owner, 1 * 10**18);
         vm.prank(owner);
         controller = new Controller();
+
+        registerCount = 0; // reset registered node count to 0
     }
 
     function testNodeRegister() public {
         printNodeInfo(node1);
-        // Register Node 1
         vm.prank(node1);
         controller.nodeRegister(pubkey1);
         printNodeInfo(node1);
+
+        Controller.Node memory n = controller.getNode(node1);
+        assertEq(n.idAddress, node1);
+        assertEq(n.dkgPublicKey, pubkey1);
+        assertEq(n.state, true);
+        assertEq(n.pending_until_block, 0);
+        assertEq(n.staking, 50000);
     }
 
     function testEmitGroupEvent() public {
@@ -52,13 +62,13 @@ contract ControllerTest is Test {
 
         uint256 groupIndex = 1;
         printGroupInfo(groupIndex);
-        printNodeInfo(node1);
+        // printNodeInfo(node1);
 
         // Register Node 1
         vm.prank(node1);
         controller.nodeRegister(pubkey1);
         printGroupInfo(groupIndex);
-        printNodeInfo(node1);
+        // printNodeInfo(node1);
 
         // Register Node 2
         vm.prank(node2);
@@ -77,20 +87,26 @@ contract ControllerTest is Test {
         assertEq(g.size, 3);
         assertEq(g.threshold, 3);
         assertEq(g.members.length, 3);
+
+        // Verify node2 info is recorded in group.members[1]
+        Controller.Member memory m = g.members[1];
+        printMemberInfo(groupIndex, 1);
+        assertEq(m.index, 1);
+        assertEq(m.nodeIdAddress, node2);
+        // assertEq(m.partialPublicKey, ?);
     }
 
     // ! Helper function for debugging below
-    uint256 registerCount = 0; // track number of registered nodes for print statements
-
     function printGroupInfo(uint256 groupIndex) public {
-        Controller.Group memory g = controller.getGroup(groupIndex);
         emit log(
             string.concat(
-                "\nNode ",
+                "\n",
                 Strings.toString(registerCount++),
-                " Registered:"
+                " Nodes Registered:"
             )
         );
+
+        Controller.Group memory g = controller.getGroup(groupIndex);
 
         uint256 groupCount = controller.groupCount();
         emit log_named_uint("groupCount", groupCount);
@@ -102,13 +118,42 @@ contract ControllerTest is Test {
     }
 
     function printNodeInfo(address nodeAddress) public {
+        emit log(
+            string.concat(
+                "\n",
+                Strings.toString(registerCount++),
+                " Nodes Registered:"
+            )
+        );
+
         Controller.Node memory n = controller.getNode(nodeAddress);
-        emit log("----");
+
         emit log_named_address("n.idAddress", n.idAddress);
         emit log_named_bytes("n.dkgPublicKey", n.dkgPublicKey);
         emit log_named_string("n.state", Bool.toText(n.state));
         emit log_named_uint("n.pending_until_block", n.pending_until_block);
         emit log_named_uint("n.staking", n.staking);
+    }
+
+    function printMemberInfo(uint256 groupIndex, uint256 memberIndex) public {
+        emit log(
+            string.concat(
+                "\nGroupIndex: ",
+                Strings.toString(groupIndex),
+                " MemberIndex: ",
+                Strings.toString(memberIndex),
+                ":"
+            )
+        );
+
+        Controller.Member memory m = controller.getMember(
+            groupIndex,
+            memberIndex
+        );
+
+        emit log_named_uint("m.index", m.index);
+        emit log_named_address("m.nodeIdAddress", m.nodeIdAddress);
+        emit log_named_bytes("m.partialPublicKey", m.partialPublicKey);
     }
 }
 
