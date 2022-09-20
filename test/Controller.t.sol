@@ -39,7 +39,13 @@ contract ControllerTest is Test {
         controller = new Controller();
     }
 
-    function testNodeRegister() public {}
+    function testNodeRegister() public {
+        printNodeInfo(node1);
+        // Register Node 1
+        vm.prank(node1);
+        controller.nodeRegister(pubkey1);
+        printNodeInfo(node1);
+    }
 
     function testEmitGroupEvent() public {
         // * Register Three nodes and see if group struct is well formed

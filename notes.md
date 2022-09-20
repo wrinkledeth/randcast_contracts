@@ -20,9 +20,9 @@ node_register:
 
 
  ## Tasks
- 
+
  - [ ] FINISH controller prototype and tests. Integrate with coordinator
-    - [x] Finish general code flow
+    - [x] Finish general code flow happy path.
     - [x] Write unit tests
     - [ ] Integrate with coordinator tests
     - [ ] Optimize function and state keywords to save gas.
