@@ -9,31 +9,36 @@ import {Coordinator} from "src/Coordinator.sol";
 
 contract Controller is Ownable {
     //! Constants
-    uint256 public immutable NODE_STAKING_AMOUNT = 50000;
-    uint256 public immutable DISQUALIFIED_NODE_PENALTY_AMOUNT = 1000;
-    uint256 public immutable COORDINATOR_STATE_TRIGGER_REWARD = 100;
-    uint256 public immutable DEFAULT_MINIMUM_THRESHOLD = 3;
-    uint256 public immutable DEFAULT_NUMBER_OF_COMMITTERS = 3;
-    uint256 public immutable DEFAULT_DKG_PHASE_DURATION = 10;
-    uint256 public immutable GROUP_MAX_CAPACITY = 10;
-    uint256 public immutable IDEAL_NUMBER_OF_GROUPS = 5;
-    uint256 public immutable PENDING_BLOCK_AFTER_QUIT = 100;
+    uint256 public constant NODE_STAKING_AMOUNT = 50000;
+    uint256 public constant DISQUALIFIED_NODE_PENALTY_AMOUNT = 1000;
+    uint256 public constant COORDINATOR_STATE_TRIGGER_REWARD = 100;
+    uint256 public constant DEFAULT_MINIMUM_THRESHOLD = 3;
+    uint256 public constant DEFAULT_NUMBER_OF_COMMITTERS = 3;
+    uint256 public constant DEFAULT_DKG_PHASE_DURATION = 10;
+    uint256 public constant GROUP_MAX_CAPACITY = 10;
+    uint256 public constant IDEAL_NUMBER_OF_GROUPS = 5;
+    uint256 public constant PENDING_BLOCK_AFTER_QUIT = 100;
 
-    //! Node Struct
-    struct Node {
-        address ip_address;
-        bytes id_public_key;
-        bool state;
-        uint256 pending_until_block;
-        uint256 staking;
-    }
+    uint256 epoch = 0; // self.epoch, previously defined in adapter
 
     //! Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
     mapping(address => uint256) public rewards; // maps node address to reward amount
     mapping(address => bool) public nodeRegistered; // map for checking if nodes are registered
 
-    // ! Group Struct (line 348)
+    struct Node {
+        address idAddress;
+        bytes dkgPublicKey;
+        bool state;
+        uint256 pending_until_block;
+        uint256 staking;
+    }
+
+    // ! Group State Variables
+    uint256 public groupCount; // Number of groups
+
+    mapping(uint256 => Group) public groups; // group_index => Group struct
+
     struct Group {
         uint256 index; // group_index
         uint256 epoch; // 0
@@ -43,40 +48,39 @@ contract Controller is Ownable {
         // Member[] members; // BTreeMap::new(), TODO
     }
 
-    // ! Group State Variables
-    uint256 public groupCount; // Number of groups
-    mapping(uint256 => Group) public groups; // group_index => Group struct
-
-    // ! Member Struct
     struct Member {
         uint256 index;
         address node_id_address;
         bytes partial_public_key;
     }
 
-    function nodeRegister(bytes calldata id_public_key) public {
-        // dkg public key as input
-        // Check to see if msg.sender is already in list of nodes, error if so.
-        require(!nodeRegistered[msg.sender]);
+    function nodeRegister(bytes calldata dkgPublicKey) public {
+        require(!nodeRegistered[msg.sender]); // error is sender in list of nodes
 
         // TODO: Check to see if enough balance for staking
 
-        // Insert node into nodes map
-        nodes[msg.sender] = Node(
-            msg.sender,
-            id_public_key,
-            true,
-            0,
-            NODE_STAKING_AMOUNT
-        );
+        // Populate Node struct and insert into nodes
+        Node storage n = nodes[msg.sender];
+        n.idAddress = msg.sender;
+        n.dkgPublicKey = dkgPublicKey;
+        n.state = true;
+        n.pending_until_block = 0;
+        n.staking = NODE_STAKING_AMOUNT;
+
+        // nodes[msg.sender] = Node(
+        //     msg.sender,
+        //     dkgPublicKey,
+        //     true,
+        //     0,
+        //     NODE_STAKING_AMOUNT
+        // );
 
         nodeRegistered[msg.sender] = true;
-        rewards[msg.sender] = 0; // This is already true
-        nodeJoin(msg.sender); // call node_join
+        rewards[msg.sender] = 0; // This can be removed
+        nodeJoin(msg.sender);
     }
 
-    // ! Node Join Stuff
-    function nodeJoin(address idAddress) public {
+    function nodeJoin(address idAddress) private {
         // * get groupIndex from findOrCreateTargetGroup -> addGroup
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
         addToGroup(idAddress, groupIndex, true); // * add to group
@@ -84,44 +88,33 @@ contract Controller is Ownable {
     }
 
     function findOrCreateTargetGroup()
-        public
-        returns (uint256 groupIndex, bool needsRebalance)
+        private
+        returns (
+            uint256, //groupIndex
+            bool // needsRebalance
+        )
     {
         if (groupCount == 0) {
-            groupIndex = addGroup();
+            uint256 groupIndex = addGroup();
+            return (groupIndex, false);
         }
-        return (groupIndex, false);
+        return (1, false); // ! Need to implement index_of_min_size
     }
 
-    function addGroup() public returns (uint256) {
-        Group storage g = groups[groupCount++];
+    function addGroup() private returns (uint256) {
+        groupCount++; // * Ruoshan, why does this break if ++ moved to next line?
+        Group storage g = groups[groupCount];
         g.index = groupCount;
         g.size = 0;
         g.threshold = DEFAULT_MINIMUM_THRESHOLD;
-        // g.members.push(Member(0));
         return groupCount;
-        // groupCount++; //increment group count
-        // uint256 epoch = 0;
-
-        // // Create Emtpy Member
-        // uint256 zero = 0;
-
-        // bytes memory partial_public_key = "";
-
-        // groups[groupCount] = Group(
-        //     groupCount,
-        //     epoch,
-        //     // Todo Member needs to be improved
-        //     Member(zero, zero_addy, partial_public_key)
-        // );
-        // return groupCount;
     }
 
     function addToGroup(
         address idAddress,
         uint256 groupIndex,
         bool emitEventInstantly
-    ) public returns (bool) {
+    ) private returns (bool) {
         // Get group from group intex
         Group storage g = groups[groupIndex];
 
@@ -141,14 +134,13 @@ contract Controller is Ownable {
         }
     }
 
-    function emitGroupEvent(uint256 groupIndex) public {
-        // TODO: Require groups.contains_key(&group_index)
+    function emitGroupEvent(uint256 groupIndex) private {
+        // TODO: Require !groups.contains_key(&group_index)
+        epoch++; // increment adapter epoch
 
-        // TODO: Self.epoch += 1  (what is this??)
-
-        // Increment group epoch
         Group storage g = groups[groupIndex];
-        g.epoch++; // is this not it?
+        g.epoch++;
+        // TODO: is_strictly_majority_consensus, commit_cache, commiters
 
         Coordinator coordinator;
 
@@ -159,9 +151,9 @@ contract Controller is Ownable {
         );
     }
 
-    //! Getter function for testing, will be omitted.
-    function getNode(address i) public view returns (address, bytes memory) {
-        return (nodes[i].ip_address, nodes[i].id_public_key);
+    // * Getter functions for testing
+    function getNode(address nodeAddress) public view returns (Node memory) {
+        return nodes[nodeAddress];
     }
 
     function getGroup(uint256 groupIndex) public view returns (Group memory) {
