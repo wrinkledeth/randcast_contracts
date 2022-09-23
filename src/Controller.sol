@@ -36,7 +36,6 @@ contract Controller is Ownable {
 
     // ! Group State Variables
     uint256 public groupCount; // Number of groups
-
     mapping(uint256 => Group) public groups; // group_index => Group struct
 
     struct Group {
@@ -54,6 +53,14 @@ contract Controller is Ownable {
         bytes partialPublicKey;
     }
 
+    // ! Coordinator Map
+    mapping(uint256 => address) public coordinators; // maps group index to coordinator address
+
+    function getCoordinator(uint256 groupIndex) public view returns (address) {
+        return coordinators[groupIndex];
+    }
+
+    // ! Functions
     function nodeRegister(bytes calldata dkgPublicKey) public {
         require(!nodeRegistered[msg.sender]); // error is sender in list of nodes
 
@@ -66,14 +73,6 @@ contract Controller is Ownable {
         n.state = true;
         n.pending_until_block = 0;
         n.staking = NODE_STAKING_AMOUNT;
-
-        // nodes[msg.sender] = Node(
-        //     msg.sender,
-        //     dkgPublicKey,
-        //     true,
-        //     0,
-        //     NODE_STAKING_AMOUNT
-        // );
 
         nodeRegistered[msg.sender] = true;
         rewards[msg.sender] = 0; // This can be removed
@@ -149,6 +148,8 @@ contract Controller is Ownable {
             g.threshold,
             DEFAULT_DKG_PHASE_DURATION
         );
+
+        coordinators[groupIndex] = address(coordinator);
     }
 
     // * Getter functions for testing

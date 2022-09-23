@@ -18,16 +18,14 @@ node_register:
 
  forge test --match-contract Controller -vv
 
+## Tasks
 
- ## Tasks
-
- - [ ] FINISH controller prototype and tests. Integrate with coordinator
-    - [x] Finish general code flow happy path.
-    - [x] Write unit tests
-    - [ ] Integrate with coordinator tests
-    - [ ] Optimize function and state keywords to save gas.
-
+- [ ] FINISH controller prototype and tests. Integrate with coordinator
+  - [x] Finish general code flow happy path.
+  - [x] Write unit tests
+  - [ ] Integrate with coordinator tests
+  - [ ] Optimize function and state keywords to save gas.
 
 ## Questions
 
-Line 106. Whats going on here. 
+Line 106. Whats going on here.

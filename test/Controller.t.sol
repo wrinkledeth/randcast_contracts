@@ -94,6 +94,9 @@ contract ControllerTest is Test {
         assertEq(m.index, 1);
         assertEq(m.nodeIdAddress, node2);
         // assertEq(m.partialPublicKey, TODO);
+
+        address coordinator_address = controller.getCoordinator(groupIndex);
+        emit log_named_address("\nCoordinator", coordinator_address);
     }
 
     // ! Helper function for debugging below
@@ -157,7 +160,7 @@ contract ControllerTest is Test {
     }
 }
 
-// Helper library for logging bool
+// ! Helper library for logging bool
 // EX : emit log_named_string("n.state", Bool.toText(n.state));
 library Bool {
     function toUInt256(bool x) internal pure returns (uint256 r) {
