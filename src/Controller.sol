@@ -8,7 +8,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Coordinator} from "src/Coordinator.sol";
 
 contract Controller is Ownable {
-    //! Constants
+    // Constants
     uint256 public constant NODE_STAKING_AMOUNT = 50000;
     uint256 public constant DISQUALIFIED_NODE_PENALTY_AMOUNT = 1000;
     uint256 public constant COORDINATOR_STATE_TRIGGER_REWARD = 100;
@@ -21,7 +21,7 @@ contract Controller is Ownable {
 
     uint256 epoch = 0; // self.epoch, previously defined in adapter
 
-    //! Node State Variables
+    // Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
     mapping(address => uint256) public rewards; // maps node address to reward amount
     mapping(address => bool) public nodeRegistered; // map for checking if nodes are registered
@@ -34,7 +34,7 @@ contract Controller is Ownable {
         uint256 staking;
     }
 
-    // ! Group State Variables
+    // Group State Variables
     uint256 public groupCount; // Number of groups
     mapping(uint256 => Group) public groups; // group_index => Group struct
 
@@ -44,7 +44,6 @@ contract Controller is Ownable {
         uint256 size; // 0
         uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
         Member[] members;
-        // Member[] members; // BTreeMap::new(), TODO
     }
 
     struct Member {
@@ -53,12 +52,8 @@ contract Controller is Ownable {
         bytes partialPublicKey;
     }
 
-    // ! Coordinator Map
+    // Coordinator State Variables
     mapping(uint256 => address) public coordinators; // maps group index to coordinator address
-
-    function getCoordinator(uint256 groupIndex) public view returns (address) {
-        return coordinators[groupIndex];
-    }
 
     // ! Functions
     function nodeRegister(bytes calldata dkgPublicKey) public {
@@ -83,7 +78,7 @@ contract Controller is Ownable {
         // * get groupIndex from findOrCreateTargetGroup -> addGroup
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
         addToGroup(idAddress, groupIndex, true); // * add to group
-        // ! Reblance Group: Implement later!
+        // TODO: Reblance Group: Implement later!
     }
 
     function findOrCreateTargetGroup()
@@ -97,7 +92,7 @@ contract Controller is Ownable {
             uint256 groupIndex = addGroup();
             return (groupIndex, false);
         }
-        return (1, false); // ! Need to implement index_of_min_size
+        return (1, false); // TODO: Need to implement index_of_min_size
     }
 
     function addGroup() private returns (uint256) {
@@ -144,7 +139,7 @@ contract Controller is Ownable {
         Coordinator coordinator;
 
         coordinator = new Coordinator(
-            // g.epoch, // ! epoch isnt in coordinator constructor atm.
+            // g.epoch, // TODO: epoch isnt in coordinator constructor atm.
             g.threshold,
             DEFAULT_DKG_PHASE_DURATION
         );
@@ -167,5 +162,9 @@ contract Controller is Ownable {
         returns (Member memory)
     {
         return groups[groupIndex].members[memberIndex];
+    }
+
+    function getCoordinator(uint256 groupIndex) public view returns (address) {
+        return coordinators[groupIndex];
     }
 }
