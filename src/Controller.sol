@@ -109,7 +109,7 @@ contract Controller is Ownable {
         uint256 groupIndex,
         bool emitEventInstantly
     ) private returns (bool) {
-        // Get group from group intex
+        // Get group from group index
         Group storage g = groups[groupIndex];
 
         // Add Member Struct to group at group index
