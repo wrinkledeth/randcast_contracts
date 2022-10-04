@@ -55,11 +55,18 @@ contract ControllerTest is Test {
         assertEq(n.state, true);
         assertEq(n.pending_until_block, 0);
         assertEq(n.staking, 50000);
+
+        vm.expectRevert("Node is already registered");
+        vm.prank(node1);
+        controller.nodeRegister(pubkey1);
     }
 
     function testEmitGroupEvent() public {
-        // * Register Three nodes and see if group struct is well formed
+        // * fail emit group event if group does not exist
+        vm.expectRevert("Group does not exist");
+        controller.tNonexistantGroup(0);
 
+        // * Register Three nodes and see if group struct is well formed
         uint256 groupIndex = 1;
         printGroupInfo(groupIndex);
         // printNodeInfo(node1);
@@ -97,6 +104,19 @@ contract ControllerTest is Test {
 
         address coordinator_address = controller.getCoordinator(groupIndex);
         emit log_named_address("\nCoordinator", coordinator_address);
+    }
+
+    function testMinimumThreshold() public {
+        uint256 min;
+        min = controller.tMinimumThreshold(3);
+        emit log_named_uint("min 3", min);
+        assertEq(min, 2);
+        min = controller.tMinimumThreshold(7);
+        emit log_named_uint("min 7", min);
+        assertEq(min, 4);
+        min = controller.tMinimumThreshold(100);
+        emit log_named_uint("min 100", min);
+        assertEq(min, 51);
     }
 
     // ! Helper function for debugging below

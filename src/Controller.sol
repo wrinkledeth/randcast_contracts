@@ -4,6 +4,7 @@
 pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 
 import {Coordinator} from "src/Coordinator.sol";
 
@@ -37,6 +38,7 @@ contract Controller is Ownable {
     // Group State Variables
     uint256 public groupCount; // Number of groups
     mapping(uint256 => Group) public groups; // group_index => Group struct
+    mapping(uint256 => bool) public groupRegistered; // map for checking if group exists
 
     struct Group {
         uint256 index; // group_index
@@ -57,7 +59,7 @@ contract Controller is Ownable {
 
     // ! Functions
     function nodeRegister(bytes calldata dkgPublicKey) public {
-        require(!nodeRegistered[msg.sender]); // error is sender in list of nodes
+        require(!nodeRegistered[msg.sender], "Node is already registered"); // error sender already in list of nodes
 
         // TODO: Check to see if enough balance for staking
 
@@ -98,6 +100,7 @@ contract Controller is Ownable {
     function addGroup() private returns (uint256) {
         groupCount++; // * Ruoshan, why does this break if ++ moved to next line?
         Group storage g = groups[groupCount];
+        groupRegistered[groupCount] = true;
         g.index = groupCount;
         g.size = 0;
         g.threshold = DEFAULT_MINIMUM_THRESHOLD;
@@ -121,15 +124,30 @@ contract Controller is Ownable {
         g.members.push(m);
         g.size++;
 
-        // TODO: minimum = minimum threshold(group.size)
+        // assign group threshold
+        uint256 minimum = minimumThreshold(g.size); // 51% of group size
+        // max of 51% of group size and DEFAULT_MINIMUM_THRESHOLD
+        g.threshold = minimum > DEFAULT_MINIMUM_THRESHOLD
+            ? minimum
+            : DEFAULT_MINIMUM_THRESHOLD;
 
         if ((g.size >= 3) && emitEventInstantly) {
             emitGroupEvent(groupIndex);
         }
     }
 
+    function minimumThreshold(uint256 groupSize)
+        private
+        pure
+        returns (uint256)
+    {
+        uint256 min = groupSize / 2 + 1;
+        return min;
+    }
+
     function emitGroupEvent(uint256 groupIndex) private {
-        // TODO: Require !groups.contains_key(&group_index)
+        require(groupRegistered[groupIndex], "Group does not exist"); // group must exist
+
         epoch++; // increment adapter epoch
 
         Group storage g = groups[groupIndex];
@@ -147,7 +165,20 @@ contract Controller is Ownable {
         coordinators[groupIndex] = address(coordinator);
     }
 
-    // * Getter functions for testing
+    // * Getter Functions / Test functions for testing
+    // DELETE LATER !!!
+    function tNonexistantGroup(uint256 groupIndex) public {
+        emitGroupEvent(groupIndex);
+    }
+
+    function tMinimumThreshold(uint256 groupSize)
+        public
+        pure
+        returns (uint256)
+    {
+        return minimumThreshold(groupSize);
+    }
+
     function getNode(address nodeAddress) public view returns (Node memory) {
         return nodes[nodeAddress];
     }

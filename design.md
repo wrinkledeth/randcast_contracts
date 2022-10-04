@@ -1,12 +1,11 @@
 # Controller Flow / Smart Contract Design
 
-This note explores all the compenents of the controller contract and how they interact with each other 
+This note explores all the compenents of the controller contract and how they interact with each other.
 (Note: need to draw a new design diagram)
 
 We will consider if we can have an improved design for solidity contract.
 
 Can we get rid of anything?
-
 
 ## Function List and Definitions
 
@@ -36,7 +35,13 @@ fn minimum_threshold(n: usize) -> usize {(((n as f64) / 2.0) + 1.0) as usize}
 // Emit Event to kick off dkt task for nodes. 
 
 fn rebalance_group(mut group_a_index: usize, mut group_b_index: usize) -> ControllerResult<bool> 
-// Rebalance groups
+// Rebalance groups?? How does it work?
+
+fn emit_dkg_task(&self) -> ControllerResult<DKGTask> {
+// ?? How does this work? Why is it commented out
+
+fn valid_group_indices(&self) -> Vec<usize> {
+// ? 
 
 
 ```
@@ -46,12 +51,67 @@ fn rebalance_group(mut group_a_index: usize, mut group_b_index: usize) -> Contro
 node_register:
   node_join:
     find_or_create_target_group
+      valid_group_indices
       add_group
     add_to_group
       minimum_threshold  
       emit_group_event
+        emit_dkg_task
     reblance_group
       choose_randomly_from_indices
       remove_from_group
       add_to_group
       emit_group_event
+
+## Questions
+
+### Controller Function
+
+What do these functions do??
+Rebalance Group?
+Emit DKG Task?
+
+Where are all the other functions called? (emit_dkg_task, commit_dkg, post_proccess_dkg etc...)
+
+find_or_create_target_group (line 118), wtf???
+
+
+
+### Design
+
+emitGroupEvent: Epoch isnt in coordinator constructor.. how to address?
+
+
+
+
+## Happy Path TODO
+
+"require" tests:
+
+- [x] test fail: emit group event for non existent group index
+- [x] test fail: register a node that has already been registered 
+
+node register
+
+- [ ] Check to see if enough balance for staking
+(What's going on here? Code seems to be gone)
+
+node join
+
+- [ ] Reblance Group: Implement later!
+(need explanation of how this works)
+
+find or create target group
+
+- [ ] Need to implement index_of_min_size  
+(need explanation of how this works)
+
+add to group
+
+- [x] minimum = minimum threshold(group.size)
+
+emit group event
+
+- [ ] Require !groups.contains_key(&group_index)
+- [ ] is_strictly_majority_consensus, commit_cache, commiters
+- [ ] group epoch isnt in coordinator constructor atm.
