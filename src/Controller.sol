@@ -1,6 +1,3 @@
-// Using the ABIEncoderV2 poses little risk here because we only use it for fetching the byte arrays
-// of shares/responses/justifications
-// pragma experimental ABIEncoderV2;  // don't think we need this
 pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
@@ -9,7 +6,7 @@ import "openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import {Coordinator} from "src/Coordinator.sol";
 
 contract Controller is Ownable {
-    // Constants
+    // ! Constants
     uint256 public constant NODE_STAKING_AMOUNT = 50000;
     uint256 public constant DISQUALIFIED_NODE_PENALTY_AMOUNT = 1000;
     uint256 public constant COORDINATOR_STATE_TRIGGER_REWARD = 100;
@@ -22,7 +19,7 @@ contract Controller is Ownable {
 
     uint256 epoch = 0; // self.epoch, previously defined in adapter
 
-    // Node State Variables
+    //  Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
     mapping(address => uint256) public rewards; // maps node address to reward amount
     mapping(address => bool) public nodeRegistered; // map for checking if nodes are registered
@@ -54,7 +51,7 @@ contract Controller is Ownable {
         bytes partialPublicKey;
     }
 
-    // Coordinator State Variables
+    // ! Coordinator State Variables
     mapping(uint256 => address) public coordinators; // maps group index to coordinator address
 
     // ! Functions
@@ -80,8 +77,13 @@ contract Controller is Ownable {
         // * get groupIndex from findOrCreateTargetGroup -> addGroup
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
         addToGroup(idAddress, groupIndex, true); // * add to group
-        // TODO: Reblance Group: Implement later!
+            // TODO: Reblance Group: Implement later!
+        if (needsRebalance) {
+            // reblanceGroup();
+        }
     }
+
+    function reblanceGroup(uint256 groupIndexA, uint256 groupIndexB) private {}
 
     function findOrCreateTargetGroup()
         private
@@ -107,11 +109,7 @@ contract Controller is Ownable {
         return groupCount;
     }
 
-    function addToGroup(
-        address idAddress,
-        uint256 groupIndex,
-        bool emitEventInstantly
-    ) private returns (bool) {
+    function addToGroup(address idAddress, uint256 groupIndex, bool emitEventInstantly) private returns (bool) {
         // Get group from group index
         Group storage g = groups[groupIndex];
 
@@ -127,20 +125,14 @@ contract Controller is Ownable {
         // assign group threshold
         uint256 minimum = minimumThreshold(g.size); // 51% of group size
         // max of 51% of group size and DEFAULT_MINIMUM_THRESHOLD
-        g.threshold = minimum > DEFAULT_MINIMUM_THRESHOLD
-            ? minimum
-            : DEFAULT_MINIMUM_THRESHOLD;
+        g.threshold = minimum > DEFAULT_MINIMUM_THRESHOLD ? minimum : DEFAULT_MINIMUM_THRESHOLD;
 
         if ((g.size >= 3) && emitEventInstantly) {
             emitGroupEvent(groupIndex);
         }
     }
 
-    function minimumThreshold(uint256 groupSize)
-        private
-        pure
-        returns (uint256)
-    {
+    function minimumThreshold(uint256 groupSize) private pure returns (uint256) {
         uint256 min = groupSize / 2 + 1;
         return min;
     }
@@ -152,6 +144,7 @@ contract Controller is Ownable {
 
         Group storage g = groups[groupIndex];
         g.epoch++;
+
         // TODO: is_strictly_majority_consensus, commit_cache, commiters
 
         Coordinator coordinator;
@@ -165,17 +158,13 @@ contract Controller is Ownable {
         coordinators[groupIndex] = address(coordinator);
     }
 
-    // * Getter Functions / Test functions for testing
-    // DELETE LATER !!!
+    // * Public Test functions for testing private stuff.
+    // * DELETE LATER
     function tNonexistantGroup(uint256 groupIndex) public {
         emitGroupEvent(groupIndex);
     }
 
-    function tMinimumThreshold(uint256 groupSize)
-        public
-        pure
-        returns (uint256)
-    {
+    function tMinimumThreshold(uint256 groupSize) public pure returns (uint256) {
         return minimumThreshold(groupSize);
     }
 
@@ -187,11 +176,7 @@ contract Controller is Ownable {
         return groups[groupIndex];
     }
 
-    function getMember(uint256 groupIndex, uint256 memberIndex)
-        public
-        view
-        returns (Member memory)
-    {
+    function getMember(uint256 groupIndex, uint256 memberIndex) public view returns (Member memory) {
         return groups[groupIndex].members[memberIndex];
     }
 
