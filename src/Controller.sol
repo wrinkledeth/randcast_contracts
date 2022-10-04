@@ -17,7 +17,7 @@ contract Controller is Ownable {
     uint256 public constant IDEAL_NUMBER_OF_GROUPS = 5;
     uint256 public constant PENDING_BLOCK_AFTER_QUIT = 100;
 
-    uint256 epoch = 0; // self.epoch, previously defined in adapter
+    uint256 epoch = 0; // self.epoch, previously ined in adapter
 
     //  Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
@@ -78,12 +78,12 @@ contract Controller is Ownable {
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
         addToGroup(idAddress, groupIndex, true); // * add to group
             // TODO: Reblance Group: Implement later!
-        if (needsRebalance) {
-            // reblanceGroup();
-        }
+            // if (needsRebalance) {
+            //     // reblanceGroup();
+            // }
     }
 
-    function reblanceGroup(uint256 groupIndexA, uint256 groupIndexB) private {}
+    // function reblanceGroup(uint256 groupIndexA, uint256 groupIndexB) private {}
 
     function findOrCreateTargetGroup()
         private
@@ -109,7 +109,7 @@ contract Controller is Ownable {
         return groupCount;
     }
 
-    function addToGroup(address idAddress, uint256 groupIndex, bool emitEventInstantly) private returns (bool) {
+    function addToGroup(address idAddress, uint256 groupIndex, bool emitEventInstantly) private {
         // Get group from group index
         Group storage g = groups[groupIndex];
 

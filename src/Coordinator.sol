@@ -131,25 +131,16 @@ contract Coordinator is Ownable {
         uint256 blocksSinceStart = block.number - startBlock;
 
         if (blocksSinceStart <= PHASE_DURATION) {
-            require(
-                shares[msg.sender].length == 0,
-                "you have already published your shares"
-            );
+            require(shares[msg.sender].length == 0, "you have already published your shares");
             shares[msg.sender] = value;
         } else if (blocksSinceStart <= 2 * PHASE_DURATION) {
-            require(
-                responses[msg.sender].length == 0,
-                "you have already published your responses"
-            );
+            require(responses[msg.sender].length == 0, "you have already published your responses");
             responses[msg.sender] = value;
         } else if (blocksSinceStart <= 3 * PHASE_DURATION) {
-            require(
-                justifications[msg.sender].length == 0,
-                "you have already published your justifications"
-            );
+            require(justifications[msg.sender].length == 0, "you have already published your justifications");
             justifications[msg.sender] = value;
         } else {
-            revert("DKG has ended");
+            revert("DKG has already ended");
         }
     }
 
