@@ -166,5 +166,5 @@ contract Controller is Ownable {
 
     function getCoordinator(uint256 groupIndex) public view returns (address) {
         return coordinators[groupIndex];
-    }
+    } 
 }
