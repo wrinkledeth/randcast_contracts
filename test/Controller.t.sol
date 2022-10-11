@@ -43,7 +43,7 @@ contract ControllerTest is Test {
         registerCount = 0; // reset registered node count to 0
     }
 
-    function testNodeRegister() public {
+    function testNodeRegister() public { 
         printNodeInfo(node1);
         vm.prank(node1);
         controller.nodeRegister(pubkey1);
