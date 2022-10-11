@@ -53,6 +53,8 @@ post_process_dkg(id, group_index, group_epoch) -> ControllerResult<()> //nodes c
     // Mock node will call node_register, do dkg with coordinator, commit_dkg, post_proccess_dks
     // Contracts may be upgraded, would be good ot have lightweight node mock framework
 
+// Look here for ethers.js boilerplate code: https://github.com/kafeikui/BLS-TSS-Network/tree/rebuild-abstract-interaction-layer-with-contract/crates/randcast-node/src/node/contract_client/ethers
+
 ```
 
 3 cases:
