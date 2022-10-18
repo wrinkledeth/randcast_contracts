@@ -53,8 +53,7 @@ post_process_dkg(id, group_index, group_epoch) -> ControllerResult<()> //nodes c
     // Mock node will call node_register, do dkg with coordinator, commit_dkg, post_proccess_dks
     // Contracts may be upgraded, would be good ot have lightweight node mock framework
 
-// Look here for ethers.js boilerplate code: https://github.com/kafeikui/BLS-TSS-Network/tree/rebuild-abstract-interaction-layer-with-contract/crates/randcast-node/src/node/contract_client/ethers
-
+/
 ```
 
 3 cases:
@@ -65,12 +64,16 @@ post_process_dkg(id, group_index, group_epoch) -> ControllerResult<()> //nodes c
 - commit dkg not called, but post_process_dkg is called
 - neither is called -> 
 
+[Look here for ethers.js boilerplate code](https://github.com/kafeikui/BLS-TSS-Network/tree/rebuild-abstract-interaction-layer-with-contract/crates/randcast-node/src/node/contract_client/ethers)
+
+
+
 ## Thoughts
 
 Controller coordinates nodes registered to network
 Nodes run dkg protocol to finish grouping.
 
-In mock environment, nodes keep querying controller for latest grouping task, so cnroller only needs to store the task. Real controller contract needs to emit the task event for nodes to query. (So this hasn't been implemented yet?)
+In mock environment, nodes keep querying controller for latest grouping task, so controller only needs to store the task. Real controller contract needs to emit the task event for nodes to query. (So this hasn't been implemented yet?)
 
 After: emit_group_event() -> emit_dkg_task(dkg_task), node_register returns. 
 Nodes perform DKS and then call commit_dkg(). 

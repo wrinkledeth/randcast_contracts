@@ -4,6 +4,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 
 import {Coordinator} from "src/Coordinator.sol";
+import "src/ICoordinator.sol";
 
 contract Controller is Ownable {
     // ! Constants
@@ -42,7 +43,10 @@ contract Controller is Ownable {
         uint256 epoch; // 0
         uint256 size; // 0
         uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
-        Member[] members;
+        Member[] members; // ! Drop storage mapping and iterate via view function
+        address[] committers;
+        CommitCache[] commitCache; // ! Drop storage mapping and iterate via view function
+        bool isStrictlyMajorityConsensusReached;
     }
 
     struct Member {
@@ -77,10 +81,10 @@ contract Controller is Ownable {
         // * get groupIndex from findOrCreateTargetGroup -> addGroup
         (uint256 groupIndex, bool needsRebalance) = findOrCreateTargetGroup();
         addToGroup(idAddress, groupIndex, true); // * add to group
-            // TODO: Reblance Group: Implement later!
-            // if (needsRebalance) {
-            //     // reblanceGroup();
-            // }
+        // TODO: Reblance Group: Implement later!
+        // if (needsRebalance) {
+        //     // reblanceGroup();
+        // }
     }
 
     // function reblanceGroup(uint256 groupIndexA, uint256 groupIndexB) private {}
@@ -109,7 +113,11 @@ contract Controller is Ownable {
         return groupCount;
     }
 
-    function addToGroup(address idAddress, uint256 groupIndex, bool emitEventInstantly) private {
+    function addToGroup(
+        address idAddress,
+        uint256 groupIndex,
+        bool emitEventInstantly
+    ) private {
         // Get group from group index
         Group storage g = groups[groupIndex];
 
@@ -122,17 +130,25 @@ contract Controller is Ownable {
         g.members.push(m);
         g.size++;
 
+        memberRegistered[groupIndex][idAddress] = true;
+
         // assign group threshold
         uint256 minimum = minimumThreshold(g.size); // 51% of group size
         // max of 51% of group size and DEFAULT_MINIMUM_THRESHOLD
-        g.threshold = minimum > DEFAULT_MINIMUM_THRESHOLD ? minimum : DEFAULT_MINIMUM_THRESHOLD;
+        g.threshold = minimum > DEFAULT_MINIMUM_THRESHOLD
+            ? minimum
+            : DEFAULT_MINIMUM_THRESHOLD;
 
         if ((g.size >= 3) && emitEventInstantly) {
             emitGroupEvent(groupIndex);
         }
     }
 
-    function minimumThreshold(uint256 groupSize) private pure returns (uint256) {
+    function minimumThreshold(uint256 groupSize)
+        private
+        pure
+        returns (uint256)
+    {
         uint256 min = groupSize / 2 + 1;
         return min;
     }
@@ -158,13 +174,127 @@ contract Controller is Ownable {
         coordinators[groupIndex] = address(coordinator);
     }
 
-    // * Public Test functions for testing private stuff.
+    // ! Commit DKG
+
+    // struct Group {  // ! Copy for reference
+    //     uint256 index; // group_index
+    //     uint256 epoch; // 0
+    //     uint256 size; // 0
+    //     uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
+    //     Member[] members;
+    //     mapping(address => bool) memberRegistered; // map for checking if member exists
+    //     address[] committers;
+    //     CommitCache[] commitCache;
+    // }
+
+    // groupindex -> member registered -> true / false
+    // ! Drop storage mappings and iterate via view function
+    mapping(uint256 => mapping(address => bool)) internal memberRegistered; // map for checking if committer exists
+    mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; // map for checking if committer exists
+
+    struct CommitResult {
+        uint256 groupEpoch;
+        bytes publicKey;
+        address[] disqualifiedNodes;
+    }
+
+    struct CommitCache {
+        CommitResult commitResult;
+        bytes partialPublicKey;
+    }
+
+    function commitDkg(
+        address idAddress,
+        uint256 groupIndex,
+        uint256 groupEpoch,
+        bytes calldata publicKey,
+        bytes calldata partialPublicKey,
+        address[] calldata disqualifiedNodes
+    ) public {
+        require(groupRegistered[groupIndex], "Group does not exist"); // require group exists
+
+        // TODO: Bincode deserialize
+        // Check if coordinator exists
+        require(
+            coordinators[groupIndex] != address(0),
+            "Coordinator not found for groupIndex"
+        ); // require coordinator exists
+
+        // Get coordinator for associated groupIndex
+        ICoordinator coordinator = ICoordinator(coordinators[groupIndex]);
+
+        // TODO: Error if out of phase (if coordinato.in_phase().is_err() ??  Controller only goes up to phase 3)
+        int8 phase = coordinator.inPhase(); // get current phase
+        require(phase != -1, "DKG Has ended"); // require coordinator is in phase 1
+
+        Group storage g = groups[groupIndex]; // get group from group index
+
+        // Require ID Address to be present in list of members.
+        require(
+            !memberRegistered[groupIndex][idAddress],
+            "Node is not a member of group"
+        );
+
+        // Require commit DKG group epoch to be the same as the Controlle Group epoch
+        require(
+            groupEpoch == g.epoch,
+            "Commig DKG Group epoch does not match Controller Group epoch"
+        );
+
+        // Ensure Commit Cache does not already contain the key for this node
+        require(
+            !partialKeysRegistered[groupIndex][partialPublicKey],
+            "Commit Cache already contains partial public key for this node"
+        );
+
+        // Create commit result / commit cache struct, and insert into g.commitCache
+        CommitResult memory commitResult = CommitResult({
+            groupEpoch: groupEpoch,
+            publicKey: publicKey,
+            disqualifiedNodes: disqualifiedNodes
+        });
+
+        CommitCache memory commitCache = CommitCache({
+            commitResult: commitResult,
+            partialPublicKey: partialPublicKey
+        });
+
+        g.commitCache.push(commitCache);
+
+        // Update partialKeysRegistered
+        partialKeysRegistered[groupIndex][partialPublicKey] = true;
+
+        // If strictly majority consencus reached:
+        if (g.isStrictlyMajorityConsensusReached) {
+            // Member[] memory members = g.members;
+
+            // assign member partial public keys
+            for (uint256 i = 0; i < g.members.length; i++) {
+                Member memory member = g.members[i];
+                member.partialPublicKey = partialPublicKey;
+            }
+        } else {
+            // check if strictly majority consensus reached
+            // TODO: draw the rest of the owl
+        }
+    }
+
+    // ! Post Proccess DKG
+
+    // ************************************************** //
+    // * Public Test functions for testing private stuff
     // * DELETE LATER
+    // ************************************************** //
+
     function tNonexistantGroup(uint256 groupIndex) public {
         emitGroupEvent(groupIndex);
     }
 
-    function tMinimumThreshold(uint256 groupSize) public pure returns (uint256) {
+    function tMinimumThreshold(uint256 groupSize)
+        public
+        pure
+        returns (uint256)
+    {
         return minimumThreshold(groupSize);
     }
 
@@ -173,14 +303,19 @@ contract Controller is Ownable {
     }
 
     function getGroup(uint256 groupIndex) public view returns (Group memory) {
+        // ! This was broken by nested mappings
         return groups[groupIndex];
     }
 
-    function getMember(uint256 groupIndex, uint256 memberIndex) public view returns (Member memory) {
+    function getMember(uint256 groupIndex, uint256 memberIndex)
+        public
+        view
+        returns (Member memory)
+    {
         return groups[groupIndex].members[memberIndex];
     }
 
     function getCoordinator(uint256 groupIndex) public view returns (address) {
         return coordinators[groupIndex];
-    } 
+    }
 }

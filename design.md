@@ -1,6 +1,6 @@
 # Controller Flow / Smart Contract Design
 
-This note explores all the compenents of the controller contract and how they interact with each other.
+This note explores all the components of the controller contract and how they interact with each other.
 (Note: need to draw a new design diagram)
 
 We will consider if we can have an improved design for solidity contract.
@@ -99,13 +99,13 @@ Ok(())
 Where are all the other functions called?
 
 - emit_dkg_task
-- commit_dkg, post_proccess_dkg etc...)
+- commit_dkg, post_process_dkg etc...)
 
 
 
 ### Design: Coordinator interface
 
-emitGroupEvent: Epoch isnt in coordinator constructor.. is it needed?? (coordinator.sol line 114)
+emitGroupEvent: Epoch isn't in coordinator constructor.. is it needed?? (coordinator.sol line 114)
 
 
 ### Trimming structs
@@ -149,7 +149,7 @@ node register
 
 node join
 
-- [ ] Reblance Group: Implement later?
+- [ ] Rebalance Group: Implement later?
 (need explanation of how this works)
 
 find or create target group
@@ -157,17 +157,17 @@ find or create target group
 - [ ] Need to implement index_of_min_size  
 (need explanation of how this works)
 
-- [ ] is_strictly_majority_consensus, commit_cache, commiters
+- [ ] is_strictly_majority_consensus, commit_cache, committers
 (What is this stuff used for? do we need it?)
 
-- [ ] group epoch isnt in coordinator constructor atm.
+- [ ] group epoch isn't in coordinator constructor atm.
 
 ## Completed
 
 Implement
 
 - [x] minimum threshold calculations
-- [x] Require statements for node register and emitgroupevent
+- [x] Require statements for node register and emit_group_event
 - [x] Create public test functions for private functions
 
 Test "require" statements:
