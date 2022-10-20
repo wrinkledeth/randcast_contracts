@@ -32,21 +32,11 @@ contract Controller is Ownable {
     // Coordinators
     mapping(uint256 => address) public coordinators; // maps group index to coordinator address
 
-    mapping(uint256 => mapping(address => bool)) internal memberRegistered; //! map for checking if committer exists
-    mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; //! map for checking if committer exists
+    // Per Group: Members Registered / Partial Keys Registered
+    // mapping(uint256 => mapping(address => bool)) internal memberRegistered; //! map for checking if committer exists
+    // mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; //! map for checking if committer exists
 
     // * Structs
-    struct CommitResult {
-        uint256 groupEpoch;
-        bytes publicKey;
-        address[] disqualifiedNodes;
-    }
-
-    struct CommitCache {
-        CommitResult commitResult;
-        bytes partialPublicKey;
-    }
-
     struct Node {
         address idAddress;
         bytes dkgPublicKey;
@@ -68,6 +58,18 @@ contract Controller is Ownable {
     struct Member {
         uint256 index;
         address nodeIdAddress;
+        bytes partialPublicKey;
+    }
+
+    struct CommitResult {
+        uint256 groupEpoch;
+        bytes publicKey;
+        address[] disqualifiedNodes;
+    }
+
+    struct CommitCache {
+        address nodeIdAddress;
+        CommitResult commitResult;
         bytes partialPublicKey;
     }
 
@@ -143,7 +145,7 @@ contract Controller is Ownable {
         g.members.push(m);
         g.size++;
 
-        memberRegistered[groupIndex][idAddress] = true;
+        //! memberRegistered[groupIndex][idAddress] = true;
 
         // assign group threshold
         uint256 minimum = minimumThreshold(g.size); // 51% of group size
@@ -202,6 +204,38 @@ contract Controller is Ownable {
     // groupindex -> member registered -> true / false
     // ! Drop storage mappings and iterate via view function
 
+    function NodeInMembers(uint256 groupIndex, address nodeIdAddress)
+        public
+        view
+        returns (bool)
+    {
+        Group storage g = groups[groupIndex];
+        for (uint256 i = 0; i < g.members.length; i++) {
+            if (g.members[i].nodeIdAddress == nodeIdAddress) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function PartialKeyRegistered(
+        uint256 groupIndex,
+        address nodeIdAddress,
+        bytes memory partialKey
+    ) public view returns (bool) {
+        Group storage g = groups[groupIndex];
+        for (uint256 i = 0; i < g.commitCache.length; i++) {
+            if (
+                g.commitCache[i].nodeIdAddress == nodeIdAddress &&
+                keccak256(g.commitCache[i].partialPublicKey) ==
+                keccak256(partialKey)
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function commitDkg(
         address idAddress,
         uint256 groupIndex,
@@ -210,41 +244,45 @@ contract Controller is Ownable {
         bytes calldata partialPublicKey,
         address[] calldata disqualifiedNodes
     ) public {
-        require(groupRegistered[groupIndex], "Group does not exist"); // require group exists
+        // ! Check of idAddres = msg.sender, ask Ruoshan
+        require(
+            idAddress == msg.sender,
+            "Node id address does not match msg.sender"
+        );
 
+        require(groupRegistered[groupIndex], "Group does not exist"); // require group exists
         // TODO: Bincode deserialize
-        // Check if coordinator exists
         require(
             coordinators[groupIndex] != address(0),
             "Coordinator not found for groupIndex"
         ); // require coordinator exists
-
-        // Get coordinator for associated groupIndex
         ICoordinator coordinator = ICoordinator(coordinators[groupIndex]);
-
-        // TODO: Discuss Phase with Team.
         int8 phase = coordinator.inPhase(); // get current phase
         require(phase != -1, "DKG Has ended"); // require coordinator is in phase 1
-
         Group storage g = groups[groupIndex]; // get group from group index
-
-        // Require ID Address to be present in list of members.
-        require(
-            !memberRegistered[groupIndex][idAddress],
-            "Node is not a member of group"
-        );
-
-        // Require commit DKG group epoch to be the same as the Controlle Group epoch
         require(
             groupEpoch == g.epoch,
-            "Commig DKG Group epoch does not match Controller Group epoch"
+            "Caller Group epoch does not match Controller Group epoch"
         );
-
-        // Ensure Commit Cache does not already contain the key for this node
         require(
-            !partialKeysRegistered[groupIndex][partialPublicKey],
-            "Commit Cache already contains partial public key for this node"
+            NodeInMembers(groupIndex, idAddress),
+            "Node is not a member of the group"
         );
+        require(
+            !PartialKeyRegistered(groupIndex, idAddress, partialPublicKey),
+            "CommitCache already contains PartialKey for this node"
+        );
+        // Require ID Address to be present in list of members.
+        // require(
+        //     !memberRegistered[groupIndex][idAddress],
+        //     "Node is not a member of group"
+        // );
+
+        // // Ensure Commit Cache does not already contain the key for this node
+        // require(
+        //     !partialKeysRegistered[groupIndex][partialPublicKey],
+        //     "Commit Cache already contains partial public key for this node"
+        // );
 
         // Create commit result / commit cache struct, and insert into g.commitCache
         CommitResult memory commitResult = CommitResult({
@@ -255,13 +293,14 @@ contract Controller is Ownable {
 
         CommitCache memory commitCache = CommitCache({
             commitResult: commitResult,
-            partialPublicKey: partialPublicKey
+            partialPublicKey: partialPublicKey,
+            nodeIdAddress: idAddress
         });
 
         g.commitCache.push(commitCache);
 
         // Update partialKeysRegistered
-        partialKeysRegistered[groupIndex][partialPublicKey] = true;
+        // ! partialKeysRegistered[groupIndex][partialPublicKey] = true;
 
         // If strictly majority consencus reached:
         if (g.isStrictlyMajorityConsensusReached) {
@@ -302,7 +341,6 @@ contract Controller is Ownable {
     }
 
     function getGroup(uint256 groupIndex) public view returns (Group memory) {
-        // ! This was broken by nested mappings
         return groups[groupIndex];
     }
 
