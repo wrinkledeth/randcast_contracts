@@ -131,16 +131,25 @@ contract Coordinator is Ownable {
         uint256 blocksSinceStart = block.number - startBlock;
 
         if (blocksSinceStart <= PHASE_DURATION) {
-            require(shares[msg.sender].length == 0, "you have already published your shares");
+            require(
+                shares[msg.sender].length == 0,
+                "you have already published your shares"
+            );
             shares[msg.sender] = value;
         } else if (blocksSinceStart <= 2 * PHASE_DURATION) {
-            require(responses[msg.sender].length == 0, "you have already published your responses");
+            require(
+                responses[msg.sender].length == 0,
+                "you have already published your responses"
+            );
             responses[msg.sender] = value;
         } else if (blocksSinceStart <= 3 * PHASE_DURATION) {
-            require(justifications[msg.sender].length == 0, "you have already published your justifications");
+            require(
+                justifications[msg.sender].length == 0,
+                "you have already published your justifications"
+            );
             justifications[msg.sender] = value;
         } else {
-            revert("DKG has already ended");
+            revert("DKG Publish has ended");
         }
     }
 
@@ -200,17 +209,24 @@ contract Coordinator is Ownable {
 
         uint256 blocksSinceStart = block.number - startBlock;
 
+        // ! Phase 0 for after deployment before initialization.
+
         if (blocksSinceStart <= PHASE_DURATION) {
-            return 1;
+            return 1; // share
         }
 
         if (blocksSinceStart <= 2 * PHASE_DURATION) {
-            return 2;
+            return 2; // response
         }
 
         if (blocksSinceStart <= 3 * PHASE_DURATION) {
-            return 3;
+            return 3; // justification
         }
+        if (blocksSinceStart <= 4 * PHASE_DURATION) {
+            return 4; // Commit DKG: Handled in controller
+        }
+
+        // ! commit_dkg Phase 4
 
         // revert("DKG Ended");
         return -1;

@@ -7,7 +7,6 @@ import {Coordinator} from "src/Coordinator.sol";
 import "src/ICoordinator.sol";
 
 contract Controller is Ownable {
-    // ! Constants
     uint256 public constant NODE_STAKING_AMOUNT = 50000;
     uint256 public constant DISQUALIFIED_NODE_PENALTY_AMOUNT = 1000;
     uint256 public constant COORDINATOR_STATE_TRIGGER_REWARD = 100;
@@ -172,6 +171,20 @@ contract Controller is Ownable {
         );
 
         coordinators[groupIndex] = address(coordinator);
+
+        // TODO: Rest of the owl
+        // TODO:  function initialize(address[] calldata nodes, bytes[] calldata publicKeys)
+
+        // From g.members, assemble node and publicKey arrays to initialize coordinator
+        address[] memory groupNodes = new address[](g.size);
+        bytes[] memory groupKeys = new bytes[](g.size);
+
+        for (uint256 i = 0; i < g.size; i++) {
+            groupNodes[i] = g.members[i].nodeIdAddress;
+            groupKeys[i] = nodes[g.members[i].nodeIdAddress].dkgPublicKey;
+        }
+
+        coordinator.initialize(groupNodes, groupKeys);
     }
 
     // ! Commit DKG
@@ -223,7 +236,7 @@ contract Controller is Ownable {
         // Get coordinator for associated groupIndex
         ICoordinator coordinator = ICoordinator(coordinators[groupIndex]);
 
-        // TODO: Error if out of phase (if coordinato.in_phase().is_err() ??  Controller only goes up to phase 3)
+        // TODO: Discuss Phase with Team.
         int8 phase = coordinator.inPhase(); // get current phase
         require(phase != -1, "DKG Has ended"); // require coordinator is in phase 1
 

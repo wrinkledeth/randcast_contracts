@@ -32,10 +32,11 @@ contract CoordinatorTest is Test {
 
     // Each phase's data is just an opaque blob of data from the smart contract's
     // perspective, so we'll just use a dummy data object
-    bytes data = "0x2222222222222222222222222222222222222222222222222222222222222222";
+    bytes data =
+        "0x2222222222222222222222222222222222222222222222222222222222222222";
 
     function setUp() public {
-        vm.deal(controller, 1 * 10 ** 18);
+        vm.deal(controller, 1 * 10**18);
         vm.prank(controller);
         coordinator = new Coordinator(THRESHOLD, PHASE_DURATION);
     }
@@ -116,7 +117,7 @@ contract CoordinatorTest is Test {
 
         // DKG End
         vm.roll(startBlock + 1 + 3 * PHASE_DURATION);
-        vm.expectRevert("DKG has already ended");
+        vm.expectRevert("DKG Publish has ended");
         coordinator.publish(data); // succesful justification
     }
 
@@ -148,13 +149,13 @@ contract CoordinatorTest is Test {
         // emit log("Blocks since start: ");
         // emit log_uint(block.number - startBlock);
 
-        // DKG Ended
+        // Phase 4 : commit DKG
         vm.roll(startBlock + 1 + 3 * PHASE_DURATION);
-        // vm.expectRevert("DKG Ended");
-        // coordinator.inPhase();
+        assertEq(coordinator.inPhase(), 4);
+
+        // DKG End
+        vm.roll(startBlock + 1 + 4 * PHASE_DURATION);
         assertEq(coordinator.inPhase(), -1);
-        // emit log("Blocks since start: ");
-        // emit log_uint(block.number - startBlock);
     }
 
     function testEnd2End() public {
