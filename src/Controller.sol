@@ -22,7 +22,30 @@ contract Controller is Ownable {
     //  Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
     mapping(address => uint256) public rewards; // maps node address to reward amount
-    mapping(address => bool) public nodeRegistered; // map for checking if nodes are registered
+    mapping(address => bool) public nodeRegistered; //! map for checking if nodes are registered
+
+    // Group State Variables
+    uint256 public groupCount; // Number of groups
+    mapping(uint256 => Group) public groups; // group_index => Group struct
+    mapping(uint256 => bool) public groupRegistered; //! map for checking if group exists
+
+    // Coordinators
+    mapping(uint256 => address) public coordinators; // maps group index to coordinator address
+
+    mapping(uint256 => mapping(address => bool)) internal memberRegistered; //! map for checking if committer exists
+    mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; //! map for checking if committer exists
+
+    // * Structs
+    struct CommitResult {
+        uint256 groupEpoch;
+        bytes publicKey;
+        address[] disqualifiedNodes;
+    }
+
+    struct CommitCache {
+        CommitResult commitResult;
+        bytes partialPublicKey;
+    }
 
     struct Node {
         address idAddress;
@@ -31,12 +54,6 @@ contract Controller is Ownable {
         uint256 pending_until_block;
         uint256 staking;
     }
-
-    // Group State Variables
-    uint256 public groupCount; // Number of groups
-    mapping(uint256 => Group) public groups; // group_index => Group struct
-    mapping(uint256 => bool) public groupRegistered; // map for checking if group exists
-
     struct Group {
         uint256 index; // group_index
         uint256 epoch; // 0
@@ -54,10 +71,7 @@ contract Controller is Ownable {
         bytes partialPublicKey;
     }
 
-    // ! Coordinator State Variables
-    mapping(uint256 => address) public coordinators; // maps group index to coordinator address
-
-    // ! Functions
+    // * Functions
     function nodeRegister(bytes calldata dkgPublicKey) public {
         require(!nodeRegistered[msg.sender], "Node is already registered"); // error sender already in list of nodes
 
@@ -103,7 +117,7 @@ contract Controller is Ownable {
     }
 
     function addGroup() private returns (uint256) {
-        groupCount++; // * Ruoshan, why does this break if ++ moved to next line?
+        groupCount++;
         Group storage g = groups[groupCount];
         groupRegistered[groupCount] = true;
         g.index = groupCount;
@@ -156,26 +170,19 @@ contract Controller is Ownable {
         require(groupRegistered[groupIndex], "Group does not exist"); // group must exist
 
         epoch++; // increment adapter epoch
+        Group storage g = groups[groupIndex]; // Grap group struct
+        g.epoch++; // Increment group epoch
 
-        Group storage g = groups[groupIndex];
-        g.epoch++;
-
-        // TODO: is_strictly_majority_consensus, commit_cache, commiters
-
+        // Deploy coordinator, add to coordinators mapping
         Coordinator coordinator;
-
         coordinator = new Coordinator(
             // g.epoch, // TODO: epoch isnt in coordinator constructor atm.
             g.threshold,
             DEFAULT_DKG_PHASE_DURATION
         );
-
         coordinators[groupIndex] = address(coordinator);
 
-        // TODO: Rest of the owl
-        // TODO:  function initialize(address[] calldata nodes, bytes[] calldata publicKeys)
-
-        // From g.members, assemble node and publicKey arrays to initialize coordinator
+        // Initialize Coordinator
         address[] memory groupNodes = new address[](g.size);
         bytes[] memory groupKeys = new bytes[](g.size);
 
@@ -185,36 +192,15 @@ contract Controller is Ownable {
         }
 
         coordinator.initialize(groupNodes, groupKeys);
+
+        // TODO: Emit event
+        // dkgtask = {}
+        // emit_dkg_task (dkg_task) -> this let nodes know to start DKG with the coordinator
     }
 
     // ! Commit DKG
-
-    // struct Group {  // ! Copy for reference
-    //     uint256 index; // group_index
-    //     uint256 epoch; // 0
-    //     uint256 size; // 0
-    //     uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
-    //     Member[] members;
-    //     mapping(address => bool) memberRegistered; // map for checking if member exists
-    //     address[] committers;
-    //     CommitCache[] commitCache;
-    // }
-
     // groupindex -> member registered -> true / false
     // ! Drop storage mappings and iterate via view function
-    mapping(uint256 => mapping(address => bool)) internal memberRegistered; // map for checking if committer exists
-    mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; // map for checking if committer exists
-
-    struct CommitResult {
-        uint256 groupEpoch;
-        bytes publicKey;
-        address[] disqualifiedNodes;
-    }
-
-    struct CommitCache {
-        CommitResult commitResult;
-        bytes partialPublicKey;
-    }
 
     function commitDkg(
         address idAddress,
