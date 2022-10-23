@@ -22,19 +22,15 @@ contract Controller is Ownable {
     //  Node State Variables
     mapping(address => Node) public nodes; //maps node address to Node Struct
     mapping(address => uint256) public rewards; // maps node address to reward amount
-    mapping(address => bool) public nodeRegistered; //! map for checking if nodes are registered
+    mapping(address => bool) public nodeRegistered; // map for checking if nodes are registered
 
     // Group State Variables
     uint256 public groupCount; // Number of groups
     mapping(uint256 => Group) public groups; // group_index => Group struct
-    mapping(uint256 => bool) public groupRegistered; //! map for checking if group exists
+    mapping(uint256 => bool) public groupRegistered; // map for checking if group exists
 
     // Coordinators
     mapping(uint256 => address) public coordinators; // maps group index to coordinator address
-
-    // Per Group: Members Registered / Partial Keys Registered
-    // mapping(uint256 => mapping(address => bool)) internal memberRegistered; //! map for checking if committer exists
-    // mapping(uint256 => mapping(bytes => bool)) internal partialKeysRegistered; //! map for checking if committer exists
 
     // * Structs
     struct Node {
@@ -49,9 +45,9 @@ contract Controller is Ownable {
         uint256 epoch; // 0
         uint256 size; // 0
         uint256 threshold; // DEFAULT_MINIMUM_THRESHOLD
-        Member[] members; // ! Drop storage mapping and iterate via view function
+        Member[] members; // Map in rust mock contract
         address[] committers;
-        CommitCache[] commitCache; // ! Drop storage mapping and iterate via view function
+        CommitCache[] commitCache; // Map in rust mock contract
         bool isStrictlyMajorityConsensusReached;
     }
 
@@ -145,8 +141,6 @@ contract Controller is Ownable {
         g.members.push(m);
         g.size++;
 
-        //! memberRegistered[groupIndex][idAddress] = true;
-
         // assign group threshold
         uint256 minimum = minimumThreshold(g.size); // 51% of group size
         // max of 51% of group size and DEFAULT_MINIMUM_THRESHOLD
@@ -177,11 +171,7 @@ contract Controller is Ownable {
 
         // Deploy coordinator, add to coordinators mapping
         Coordinator coordinator;
-        coordinator = new Coordinator(
-            // g.epoch, // TODO: epoch isnt in coordinator constructor atm.
-            g.threshold,
-            DEFAULT_DKG_PHASE_DURATION
-        );
+        coordinator = new Coordinator(g.threshold, DEFAULT_DKG_PHASE_DURATION);
         coordinators[groupIndex] = address(coordinator);
 
         // Initialize Coordinator
@@ -237,18 +227,18 @@ contract Controller is Ownable {
     }
 
     function commitDkg(
-        address idAddress,
+        // address idAddress,
         uint256 groupIndex,
         uint256 groupEpoch,
         bytes calldata publicKey,
         bytes calldata partialPublicKey,
         address[] calldata disqualifiedNodes
     ) public {
-        // ! Check of idAddres = msg.sender, ask Ruoshan
-        require(
-            idAddress == msg.sender,
-            "Node id address does not match msg.sender"
-        );
+        // // ! I added a check of idAddres = msg.sender, ask Ruoshan
+        // require(
+        //     idAddress == msg.sender,
+        //     "Node id address does not match msg.sender"
+        // );
 
         require(groupRegistered[groupIndex], "Group does not exist"); // require group exists
         // TODO: Bincode deserialize
@@ -265,26 +255,14 @@ contract Controller is Ownable {
             "Caller Group epoch does not match Controller Group epoch"
         );
         require(
-            NodeInMembers(groupIndex, idAddress),
+            NodeInMembers(groupIndex, msg.sender),
             "Node is not a member of the group"
         );
         require(
-            !PartialKeyRegistered(groupIndex, idAddress, partialPublicKey),
+            !PartialKeyRegistered(groupIndex, msg.sender, partialPublicKey),
             "CommitCache already contains PartialKey for this node"
         );
-        // Require ID Address to be present in list of members.
-        // require(
-        //     !memberRegistered[groupIndex][idAddress],
-        //     "Node is not a member of group"
-        // );
 
-        // // Ensure Commit Cache does not already contain the key for this node
-        // require(
-        //     !partialKeysRegistered[groupIndex][partialPublicKey],
-        //     "Commit Cache already contains partial public key for this node"
-        // );
-
-        // Create commit result / commit cache struct, and insert into g.commitCache
         CommitResult memory commitResult = CommitResult({
             groupEpoch: groupEpoch,
             publicKey: publicKey,
@@ -294,26 +272,72 @@ contract Controller is Ownable {
         CommitCache memory commitCache = CommitCache({
             commitResult: commitResult,
             partialPublicKey: partialPublicKey,
-            nodeIdAddress: idAddress
+            nodeIdAddress: msg.sender
         });
 
         g.commitCache.push(commitCache);
 
-        // Update partialKeysRegistered
-        // ! partialKeysRegistered[groupIndex][partialPublicKey] = true;
-
-        // If strictly majority consencus reached:
+        // TODO: Draw the rest of the owl
         if (g.isStrictlyMajorityConsensusReached) {
-            // Member[] memory members = g.members;
-
             // assign member partial public keys
             for (uint256 i = 0; i < g.members.length; i++) {
-                Member memory member = g.members[i];
-                member.partialPublicKey = partialPublicKey;
+                if (g.members[i].nodeIdAddress == msg.sender) {
+                    g.members[i].partialPublicKey = partialPublicKey;
+                }
             }
         } else {
             // check if strictly majority consensus reached
-            // TODO: draw the rest of the owl
+            (
+                bool good_result,
+                address[] memory node_array
+            ) = getStrictlyMajorityIdenticalCommitmentResult(groupIndex);
+        }
+    }
+
+    mapping(bytes32 => address[]) commitResultToNodes;
+    mapping(bytes32 => bool) commitResultSeen; // keep track of commit results seen
+
+    // Goal: get array of majority members with identical commit result
+    function getStrictlyMajorityIdenticalCommitmentResult(uint256 groupIndex)
+        internal
+        returns (bool, address[] memory)
+    {
+        Group storage g = groups[groupIndex]; // get group from group index
+
+        // Populate commitResultToNodes with identical commit results => node array
+        for (uint256 i = 0; i < g.commitCache.length; i++) {
+            CommitCache memory commitCache = g.commitCache[i];
+            bytes32 commitResultHash = keccak256(
+                abi.encode(commitCache.commitResult)
+            );
+            if (commitResultSeen[commitResultHash]) {
+                commitResultToNodes[commitResultHash].push(
+                    g.commitCache[i].nodeIdAddress
+                );
+            } else {
+                commitResultSeen[commitResultHash] = true;
+                commitResultToNodes[commitResultHash] = new address[](0);
+                commitResultToNodes[commitResultHash].push(
+                    g.commitCache[i].nodeIdAddress
+                );
+            }
+        }
+
+        // iterate through commitResultToNodes and check if majority exists. If it does, return the nodes
+        for (uint256 i = 0; i < g.commitCache.length; i++) {
+            CommitCache memory commitCache = g.commitCache[i];
+            bytes32 commitResultHash = keccak256(
+                abi.encode(commitCache.commitResult)
+            );
+            if (
+                commitResultToNodes[commitResultHash].length >
+                g.members.length / 2
+            ) {
+                // g.isStrictlyMaj[[orityConsensusReached = true;
+                return (true, commitResultToNodes[commitResultHash]);
+            } else {
+                return (false, new address[](0));
+            }
         }
     }
 

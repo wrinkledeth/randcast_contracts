@@ -136,21 +136,9 @@ contract ControllerTest is Test {
         bytes memory publicKey = hex"C0FFEE";
         address[] memory disqualifiedNodes = new address[](0);
 
-        vm.prank(node2);
-        vm.expectRevert("Node id address does not match msg.sender");
-        controller.commitDkg(
-            node1,
-            groupIndex,
-            groupEpoch,
-            publicKey,
-            partialPublicKey,
-            disqualifiedNodes
-        );
-
         vm.prank(node1);
         vm.expectRevert("Group does not exist");
         controller.commitDkg(
-            node1,
             2,
             groupEpoch,
             publicKey,
@@ -163,7 +151,6 @@ contract ControllerTest is Test {
             "Caller Group epoch does not match Controller Group epoch"
         );
         controller.commitDkg(
-            node1,
             groupIndex,
             3,
             publicKey,
@@ -174,7 +161,6 @@ contract ControllerTest is Test {
         vm.prank(node4);
         vm.expectRevert("Node is not a member of the group");
         controller.commitDkg(
-            node4,
             groupIndex,
             groupEpoch,
             publicKey,
@@ -182,31 +168,49 @@ contract ControllerTest is Test {
             disqualifiedNodes
         );
 
-        // Succesful Commit!
+        // Succesful Commit: Node 1
         vm.prank(node1);
         controller.commitDkg(
-            node1,
             groupIndex,
             groupEpoch,
             publicKey,
             partialPublicKey,
             disqualifiedNodes
         );
-
-        printGroupInfo(groupIndex);
 
         vm.prank(node1);
         vm.expectRevert(
             "CommitCache already contains PartialKey for this node"
         );
         controller.commitDkg(
-            node1,
             groupIndex,
             groupEpoch,
             publicKey,
             partialPublicKey,
             disqualifiedNodes
         );
+
+        // // Succesful Commit: Node 2
+        // vm.prank(node2);
+        // controller.commitDkg(
+        //     groupIndex,
+        //     groupEpoch,
+        //     publicKey,
+        //     partialPublicKey,
+        //     disqualifiedNodes
+        // );
+
+        // // Succesful Commit: Node 3
+        // vm.prank(node3);
+        // controller.commitDkg(
+        //     groupIndex,
+        //     groupEpoch,
+        //     publicKey,
+        //     partialPublicKey,
+        //     disqualifiedNodes
+        // );
+
+        printGroupInfo(groupIndex);
     }
 
     function testIsPartialKeyRegistered() public {
