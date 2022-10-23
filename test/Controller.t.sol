@@ -190,27 +190,31 @@ contract ControllerTest is Test {
             disqualifiedNodes
         );
 
-        // // Succesful Commit: Node 2
-        // vm.prank(node2);
-        // controller.commitDkg(
-        //     groupIndex,
-        //     groupEpoch,
-        //     publicKey,
-        //     partialPublicKey,
-        //     disqualifiedNodes
-        // );
+        assertEq(checkIsStrictlyMajorityConsensusReached(groupIndex), false);
 
-        // // Succesful Commit: Node 3
-        // vm.prank(node3);
-        // controller.commitDkg(
-        //     groupIndex,
-        //     groupEpoch,
-        //     publicKey,
-        //     partialPublicKey,
-        //     disqualifiedNodes
-        // );
+        // Succesful Commit: Node 2
+        vm.prank(node2);
+        controller.commitDkg(
+            groupIndex,
+            groupEpoch,
+            publicKey,
+            partialPublicKey,
+            disqualifiedNodes
+        );
 
-        printGroupInfo(groupIndex);
+        assertEq(checkIsStrictlyMajorityConsensusReached(groupIndex), false);
+
+        // Succesful Commit: Node 3
+        vm.prank(node3);
+        controller.commitDkg(
+            groupIndex,
+            groupEpoch,
+            publicKey,
+            partialPublicKey,
+            disqualifiedNodes
+        );
+
+        assertEq(checkIsStrictlyMajorityConsensusReached(groupIndex), true);
     }
 
     function testIsPartialKeyRegistered() public {
@@ -221,11 +225,15 @@ contract ControllerTest is Test {
             controller.PartialKeyRegistered(groupIndex, node1, sampleKey),
             false
         );
-        // testCommitDkg();
-        // assertEq(
-        //     controller.isPartialKeyRegistered(groupIndex, node1, sampleKey),
-        //     true
-        // );
+    }
+
+    function checkIsStrictlyMajorityConsensusReached(uint256 groupIndex)
+        public
+        view
+        returns (bool)
+    {
+        Controller.Group memory g = controller.getGroup(groupIndex);
+        return g.isStrictlyMajorityConsensusReached;
     }
 
     function testPostProccessDkg() public {

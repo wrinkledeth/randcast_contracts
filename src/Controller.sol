@@ -114,7 +114,7 @@ contract Controller is Ownable {
         return (1, false); // TODO: Need to implement index_of_min_size
     }
 
-    function addGroup() private returns (uint256) {
+    function addGroup() internal returns (uint256) {
         groupCount++;
         Group storage g = groups[groupCount];
         groupRegistered[groupCount] = true;
@@ -128,7 +128,7 @@ contract Controller is Ownable {
         address idAddress,
         uint256 groupIndex,
         bool emitEventInstantly
-    ) private {
+    ) internal {
         // Get group from group index
         Group storage g = groups[groupIndex];
 
@@ -154,7 +154,7 @@ contract Controller is Ownable {
     }
 
     function minimumThreshold(uint256 groupSize)
-        private
+        internal
         pure
         returns (uint256)
     {
@@ -162,7 +162,7 @@ contract Controller is Ownable {
         return min;
     }
 
-    function emitGroupEvent(uint256 groupIndex) private {
+    function emitGroupEvent(uint256 groupIndex) internal {
         require(groupRegistered[groupIndex], "Group does not exist"); // group must exist
 
         epoch++; // increment adapter epoch
@@ -208,6 +208,7 @@ contract Controller is Ownable {
         return false;
     }
 
+    // ! Make this private eventually
     function PartialKeyRegistered(
         uint256 groupIndex,
         address nodeIdAddress,
@@ -291,6 +292,22 @@ contract Controller is Ownable {
                 bool good_result,
                 address[] memory node_array
             ) = getStrictlyMajorityIdenticalCommitmentResult(groupIndex);
+
+            if (good_result) {
+                if (node_array.length > g.threshold) {
+                    g.isStrictlyMajorityConsensusReached = true;
+                    // assign member partial public keys
+                    for (uint256 i = 0; i < g.members.length; i++) {
+                        for (uint256 j = 0; j < node_array.length; j++) {
+                            if (g.members[i].nodeIdAddress == node_array[j]) {
+                                g
+                                    .members[i]
+                                    .partialPublicKey = partialPublicKey;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
