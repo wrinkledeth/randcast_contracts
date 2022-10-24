@@ -18,14 +18,16 @@ contract ControllerTest is Test {
     address public node1 = address(0x1);
     address public node2 = address(0x2);
     address public node3 = address(0x3);
-
-    //Unregistered Node
     address public node4 = address(0x4);
 
+    //Unregistered Node
+    address public node5 = address(0x5);
+
     // Node Public Keys
-    bytes pubkey1 = hex"BEEFED";
-    bytes pubkey2 = hex"DECADE";
-    bytes pubkey3 = hex"FACADE";
+    bytes pubkey1 = hex"DECADE01";
+    bytes pubkey2 = hex"DECADE02";
+    bytes pubkey3 = hex"DECADE03";
+    bytes pubkey4 = hex"DECADE04";
 
     uint256 registerCount; // track number of registered nodes for tests
 
@@ -35,6 +37,7 @@ contract ControllerTest is Test {
         vm.deal(node2, 1 * 10**18);
         vm.deal(node3, 1 * 10**18);
         vm.deal(node4, 1 * 10**18);
+        vm.deal(node5, 1 * 10**18);
 
         // deal owner and create controller
         vm.deal(owner, 1 * 10**18);
@@ -158,7 +161,7 @@ contract ControllerTest is Test {
             disqualifiedNodes
         );
 
-        vm.prank(node4);
+        vm.prank(node5);
         vm.expectRevert("Node is not a member of the group");
         controller.commitDkg(
             groupIndex,

@@ -311,15 +311,15 @@ contract Controller is Ownable {
         }
     }
 
-    mapping(bytes32 => address[]) commitResultToNodes;
-    mapping(bytes32 => bool) commitResultSeen; // keep track of commit results seen
+    mapping(uint256 => mapping(bytes32 => address[])) commitResultToNodes;
+    mapping(uint256 => mapping(bytes32 => bool)) commitResultSeen; // keep track of commit results seen
 
     // Goal: get array of majority members with identical commit result
     function getStrictlyMajorityIdenticalCommitmentResult(uint256 groupIndex)
         internal
         returns (bool, address[] memory)
     {
-        Group storage g = groups[groupIndex]; // get group from group index
+        Group memory g = groups[groupIndex]; // get group from group index
 
         // Populate commitResultToNodes with identical commit results => node array
         for (uint256 i = 0; i < g.commitCache.length; i++) {
@@ -327,31 +327,36 @@ contract Controller is Ownable {
             bytes32 commitResultHash = keccak256(
                 abi.encode(commitCache.commitResult)
             );
-            if (commitResultSeen[commitResultHash]) {
-                commitResultToNodes[commitResultHash].push(
+            if (commitResultSeen[groupIndex][commitResultHash]) {
+                commitResultToNodes[groupIndex][commitResultHash].push(
                     g.commitCache[i].nodeIdAddress
                 );
             } else {
-                commitResultSeen[commitResultHash] = true;
-                commitResultToNodes[commitResultHash] = new address[](0);
-                commitResultToNodes[commitResultHash].push(
+                commitResultSeen[groupIndex][commitResultHash] = true;
+                commitResultToNodes[groupIndex][
+                    commitResultHash
+                ] = new address[](0);
+                commitResultToNodes[groupIndex][commitResultHash].push(
                     g.commitCache[i].nodeIdAddress
                 );
             }
         }
 
-        // iterate through commitResultToNodes and check if majority exists. If it does, return the nodes
+        // iterate through commitResultToNodes[groupIndex] and check if majority exists. If it does, return the nodes
         for (uint256 i = 0; i < g.commitCache.length; i++) {
             CommitCache memory commitCache = g.commitCache[i];
             bytes32 commitResultHash = keccak256(
                 abi.encode(commitCache.commitResult)
             );
             if (
-                commitResultToNodes[commitResultHash].length >
+                commitResultToNodes[groupIndex][commitResultHash].length >
                 g.members.length / 2
             ) {
                 // g.isStrictlyMaj[[orityConsensusReached = true;
-                return (true, commitResultToNodes[commitResultHash]);
+                return (
+                    true,
+                    commitResultToNodes[groupIndex][commitResultHash]
+                );
             }
         }
         return (false, new address[](0));
