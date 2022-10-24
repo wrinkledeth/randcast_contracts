@@ -352,10 +352,9 @@ contract Controller is Ownable {
             ) {
                 // g.isStrictlyMaj[[orityConsensusReached = true;
                 return (true, commitResultToNodes[commitResultHash]);
-            } else {
-                return (false, new address[](0));
             }
         }
+        return (false, new address[](0));
     }
 
     // ! Post Proccess DKG
