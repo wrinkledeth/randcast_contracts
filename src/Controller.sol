@@ -243,13 +243,18 @@ contract Controller is Ownable {
 
         require(groupRegistered[groupIndex], "Group does not exist"); // require group exists
         // TODO: Bincode deserialize
+
         require(
             coordinators[groupIndex] != address(0),
             "Coordinator not found for groupIndex"
         ); // require coordinator exists
+
+        // Ensure DKG Proccess is in Phase
         ICoordinator coordinator = ICoordinator(coordinators[groupIndex]);
         int8 phase = coordinator.inPhase(); // get current phase
         require(phase != -1, "DKG Has ended"); // require coordinator is in phase 1
+
+        // Ensure Eopch is correct,  Node is in group, and has not already submitted a partial key
         Group storage g = groups[groupIndex]; // get group from group index
         require(
             groupEpoch == g.epoch,
@@ -264,6 +269,7 @@ contract Controller is Ownable {
             "CommitCache already contains PartialKey for this node"
         );
 
+        // Populate CommitResult / CommitCache
         CommitResult memory commitResult = CommitResult({
             groupEpoch: groupEpoch,
             publicKey: publicKey,
@@ -278,7 +284,7 @@ contract Controller is Ownable {
 
         g.commitCache.push(commitCache);
 
-        // TODO: Draw the rest of the owl
+        // If consensus was reached previously...
         if (g.isStrictlyMajorityConsensusReached) {
             // assign member partial public keys
             for (uint256 i = 0; i < g.members.length; i++) {
@@ -287,13 +293,13 @@ contract Controller is Ownable {
                 }
             }
         } else {
-            // check if strictly majority consensus reached
+            // check if consensus was just reached...
             (
-                bool good_result,
+                bool consensusReached,
                 address[] memory node_array
             ) = getStrictlyMajorityIdenticalCommitmentResult(groupIndex);
 
-            if (good_result) {
+            if (consensusReached) {
                 if (node_array.length > g.threshold) {
                     g.isStrictlyMajorityConsensusReached = true;
                     // assign member partial public keys
@@ -308,9 +314,14 @@ contract Controller is Ownable {
                     }
                 }
             }
+
+            // TODO: Draw the rest of the owl (line 870 in BLS Repo)
+            // Qualified Indices / Commiter indices / CHoose randomly from indices
+            // Move disqualified nodes out of group
         }
     }
 
+    //! Ask Ruoshan, can this be done more gas efficintly?
     mapping(uint256 => mapping(bytes32 => address[])) commitResultToNodes;
     mapping(uint256 => mapping(bytes32 => bool)) commitResultSeen; // keep track of commit results seen
 
@@ -350,7 +361,7 @@ contract Controller is Ownable {
             );
             if (
                 commitResultToNodes[groupIndex][commitResultHash].length >
-                g.members.length / 2
+                g.members.length / 2 //! Ask ruoshan about this!
             ) {
                 // g.isStrictlyMaj[[orityConsensusReached = true;
                 return (
