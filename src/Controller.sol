@@ -322,6 +322,7 @@ contract Controller is Ownable {
     }
 
     //! Ask Ruoshan, can this be done more gas efficintly?
+    // groupIndex => commitResult (hashed) => Node Address Array
     mapping(uint256 => mapping(bytes32 => address[])) commitResultToNodes;
     mapping(uint256 => mapping(bytes32 => bool)) commitResultSeen; // keep track of commit results seen
 
@@ -363,7 +364,7 @@ contract Controller is Ownable {
                 commitResultToNodes[groupIndex][commitResultHash].length >
                 g.members.length / 2 //! Ask ruoshan about this!
             ) {
-                // g.isStrictlyMaj[[orityConsensusReached = true;
+                // g.isStrictlyMajorrityConsensusReached = true;
                 return (
                     true,
                     commitResultToNodes[groupIndex][commitResultHash]
