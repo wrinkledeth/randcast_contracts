@@ -219,6 +219,8 @@ contract ControllerTest is Test {
 
         assertEq(checkIsStrictlyMajorityConsensusReached(groupIndex), true);
         printGroupInfo(groupIndex);
+
+        // Commiter Indices + Group disqualification next
     }
 
     function testIsPartialKeyRegistered() public {
