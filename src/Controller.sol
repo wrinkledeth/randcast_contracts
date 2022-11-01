@@ -296,16 +296,23 @@ contract Controller is Ownable {
             // check if consensus was just reached...
             (
                 bool consensusReached,
-                address[] memory node_array
+                address[] memory majority_members
             ) = getStrictlyMajorityIdenticalCommitmentResult(groupIndex);
 
             if (consensusReached) {
-                if (node_array.length > g.threshold) {
+                // TODO: let last_output = self.last_output as usize; // * What is this?
+                // TODO: majority_members.retain(|m| !identical_commit.disqualified_nodes.contains(m));
+                // TODO: ensure majority members aren't contained in disqualified nodes.
+                if (majority_members.length > g.threshold) {
                     g.isStrictlyMajorityConsensusReached = true;
+                    // g.size -= g.disqualifiedNodes.length;
                     // assign member partial public keys
                     for (uint256 i = 0; i < g.members.length; i++) {
-                        for (uint256 j = 0; j < node_array.length; j++) {
-                            if (g.members[i].nodeIdAddress == node_array[j]) {
+                        for (uint256 j = 0; j < majority_members.length; j++) {
+                            if (
+                                g.members[i].nodeIdAddress ==
+                                majority_members[j]
+                            ) {
                                 g
                                     .members[i]
                                     .partialPublicKey = partialPublicKey;
